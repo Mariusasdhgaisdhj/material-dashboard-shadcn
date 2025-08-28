@@ -2,8 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/material-dashboard-shadcn/' : '/',
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : '/material-dashboard-shadcn/',
   plugins: [
     react(),
   ],
@@ -25,4 +25,4 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
-});
+}));
