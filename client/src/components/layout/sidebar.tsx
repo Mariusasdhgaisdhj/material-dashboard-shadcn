@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -84,7 +84,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           const isActive = location.pathname === item.href;
           
           return (
-            <NavLink key={item.href} to={item.href}>
+            <Link key={item.href} to={item.href}>
               <div
                 className={cn(
                   "flex items-center text-sm font-normal rounded-lg cursor-pointer",
@@ -96,7 +96,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 <Icon className="mr-3 w-4 h-4" />
                 {item.title}
               </div>
-            </NavLink>
+            </Link>
           );
         })}
 
@@ -110,7 +110,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             const isActive = location.pathname === item.href;
             
             return (
-              <NavLink key={item.href} to={item.href}>
+              <Link key={item.href} to={item.href}>
                 <div
                   className={cn(
                     "flex items-center text-sm font-normal rounded-lg cursor-pointer",
@@ -122,14 +122,14 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                   <Icon className="mr-3 w-4 h-4" />
                   {item.title}
                 </div>
-              </NavLink>
+              </Link>
             );
           })}
         </div>
 
         {/* Documentation Link */}
         <div className="mt-auto pt-4 border-t border-stone-200">
-          <NavLink to="/documentation">
+          <Link to="/documentation">
             <div
               className={cn(
                 "flex items-center text-sm font-normal rounded-lg cursor-pointer",
@@ -141,7 +141,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               <BookOpen className="mr-3 w-4 h-4" />
               Documentation
             </div>
-          </NavLink>
+          </Link>
         </div>
       </nav>
 
