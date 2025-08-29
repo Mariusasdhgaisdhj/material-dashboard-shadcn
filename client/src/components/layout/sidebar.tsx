@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -55,7 +55,7 @@ const authItems = [
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const [location] = useLocation();
+  const location = useLocation();
 
   return (
     <aside className="w-60 bg-white lg:bg-transparent flex flex-col relative z-10 h-full border-r border-stone-200 lg:border-0">
@@ -81,10 +81,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       <nav className="flex-1 p-4 space-y-2 relative z-10">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.href;
+          const isActive = location.pathname === item.href;
           
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} to={item.href}>
               <div
                 className={cn(
                   "flex items-center text-sm font-normal rounded-lg cursor-pointer",
@@ -107,10 +107,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </p>
           {authItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location === item.href;
+            const isActive = location.pathname === item.href;
             
             return (
-              <Link key={item.href} href={item.href}>
+              <Link key={item.href} to={item.href}>
                 <div
                   className={cn(
                     "flex items-center text-sm font-normal rounded-lg cursor-pointer",
@@ -129,11 +129,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
         {/* Documentation Link */}
         <div className="mt-auto pt-4 border-t border-stone-200">
-          <Link href="/documentation">
+          <Link to="/documentation">
             <div
               className={cn(
                 "flex items-center text-sm font-normal rounded-lg cursor-pointer",
-                location === "/documentation"
+                location.pathname === "/documentation"
                   ? "px-3 py-2 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border border-stone-900 text-stone-50 hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none duration-300 ease-in align-middle select-none font-sans text-center antialiased"
                   : "px-3 py-2 text-stone-700 hover:bg-stone-100 transition-colors duration-200"
               )}

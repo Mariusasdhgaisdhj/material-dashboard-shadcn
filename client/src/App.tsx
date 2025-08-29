@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -82,41 +82,41 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={() => 
+    <Routes>
+      <Route path="/" element={
         <Layout>
           <Dashboard />
         </Layout>
       } />
-      <Route path="/profile" component={() => 
+      <Route path="/profile" element={
         <Layout title="Profile" description="Manage your account settings and personal information">
           <Profile />
         </Layout>
       } />
-      <Route path="/tables" component={() => 
+      <Route path="/tables" element={
         <Layout title="Tables" description="Browse and manage data across different views">
           <Tables />
         </Layout>
       } />
-      <Route path="/notifications" component={() => 
+      <Route path="/notifications" element={
         <Layout title="Notifications" description="Stay updated with your latest alerts and messages">
           <Notifications />
         </Layout>
       } />
-      <Route path="/subscriptions" component={() => 
+      <Route path="/subscriptions" element={
         <Layout title="Subscriptions" description="Manage your billing, plans, and subscription settings">
           <Subscriptions />
         </Layout>
       } />
-      <Route path="/documentation" component={() => 
+      <Route path="/documentation" element={
         <Layout title="Documentation" description="Installation guide, component examples, and project information">
           <Documentation />
         </Layout>
       } />
-      <Route path="/auth/sign-in" component={SignIn} />
-      <Route path="/auth/sign-up" component={SignUp} />
-      <Route component={NotFound} />
-    </Switch>
+      <Route path="/auth/sign-in" element={<SignIn />} />
+      <Route path="/auth/sign-up" element={<SignUp />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
@@ -124,8 +124,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <HashRouter>
+          <Toaster />
+          <Router />
+        </HashRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
