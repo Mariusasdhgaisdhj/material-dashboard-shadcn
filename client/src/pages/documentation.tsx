@@ -51,8 +51,8 @@ export default function Documentation() {
               Clone Repository
             </h3>
             <CodeBlock 
-              code={`git clone <repository-url>
-cd material-shadcn-dashboard`} 
+              code={`git clone https://github.com/creativetimofficial/material-dashboard-shadcn.git
+cd material-dashboard-shadcn`} 
               language="bash" 
               id="clone" 
             />
