@@ -21,7 +21,7 @@ export default function Dashboard() {
           <div className="relative z-10 p-8 flex items-center h-full">
             <div className="max-w-lg">
               <h2 className="text-3xl font-bold text-white mb-4">
-                Build Amazing Products
+                Build Amazing Teams
               </h2>
               <p className="text-stone-200 text-lg mb-6 leading-relaxed">
                 Connect with diverse talent and create inclusive workspaces that
