@@ -122,14 +122,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <HashRouter>
+    <HashRouter>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
           <Toaster />
           <Router />
-        </HashRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HashRouter>
   );
 }
 

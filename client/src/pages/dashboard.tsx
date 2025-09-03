@@ -3,7 +3,7 @@ import { ProjectsTable } from "@/components/dashboard/projects-table";
 import { ChartsShowcase } from "@/components/dashboard/charts-showcase";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import heroBackground from "@assets/material-shadcn-card_1756389861391.jpg";
+import peopleBackground from "/images/material-persons.jpg";
 
 export default function Dashboard() {
   return (
@@ -12,7 +12,7 @@ export default function Dashboard() {
       <Card className="relative mb-8 border border-stone-200 bg-white overflow-hidden">
         <div
           className="relative h-64 bg-cover bg-top bg-no-repeat"
-          style={{ backgroundImage: `url(${heroBackground})` }}
+          style={{ backgroundImage: `url(${peopleBackground})` }}
         >
           {/* Dark overlay for better text readability */}
           <div className="absolute inset-0"></div>

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -84,19 +84,19 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           const isActive = location.pathname === item.href;
           
           return (
-            <Link key={item.href} to={item.href}>
+            <NavLink key={item.href} to={item.href}>
               <div
                 className={cn(
                   "flex items-center text-sm font-normal rounded-lg cursor-pointer",
                   isActive
                     ? "px-3 py-2 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border border-stone-900 text-stone-50 hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none duration-300 ease-in align-middle select-none font-sans text-center antialiased"
-                    : "px-3 py-2 text-stone-700 hover:bg-stone-100 transition-colors duration-200"
+                    : "px-3 py-2 text-stone-700 hover:bg-stone-100 transition-colors duration-200 border border-transparent"
                 )}
               >
                 <Icon className="mr-3 w-4 h-4" />
                 {item.title}
               </div>
-            </Link>
+            </NavLink>
           );
         })}
 
@@ -110,26 +110,26 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             const isActive = location.pathname === item.href;
             
             return (
-              <Link key={item.href} to={item.href}>
+              <NavLink key={item.href} to={item.href}>
                 <div
                   className={cn(
                     "flex items-center text-sm font-normal rounded-lg cursor-pointer",
                     isActive
                       ? "px-3 py-2 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border border-stone-900 text-stone-50 hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none duration-300 ease-in align-middle select-none font-sans text-center antialiased"
-                      : "px-3 py-2 text-stone-700 hover:bg-stone-100 transition-colors duration-200"
+                      : "px-3 py-2 text-stone-700 hover:bg-stone-100 transition-colors duration-200 border border-transparent"
                   )}
                 >
                   <Icon className="mr-3 w-4 h-4" />
                   {item.title}
                 </div>
-              </Link>
+              </NavLink>
             );
           })}
         </div>
 
         {/* Documentation Link */}
         <div className="mt-auto pt-4 border-t border-stone-200">
-          <Link to="/documentation">
+          <NavLink to="/documentation">
             <div
               className={cn(
                 "flex items-center text-sm font-normal rounded-lg cursor-pointer",
@@ -141,7 +141,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               <BookOpen className="mr-3 w-4 h-4" />
               Documentation
             </div>
-          </Link>
+          </NavLink>
         </div>
       </nav>
 
