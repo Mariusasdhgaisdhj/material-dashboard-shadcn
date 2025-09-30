@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { ThemeConfigurator } from "@/components/theme-configurator";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import Dashboard from "@/pages/dashboard";
@@ -90,64 +92,88 @@ function Router() {
   return (
     <Routes>
       <Route path="/" element={
-        <Layout>
-          <Dashboard />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Dashboard />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/profile" element={
-        <Layout title="Profile" description="Manage your account settings and personal information">
-          <Profile />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Profile" description="Manage your account settings and personal information">
+            <Profile />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/tables" element={
-        <Layout title="Tables" description="Browse and manage data across different views">
-          <Tables />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Tables" description="Browse and manage data across different views">
+            <Tables />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/orders" element={
-        <Layout title="Orders" description="View recent orders">
-          <Orders />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Orders" description="View recent orders">
+            <Orders />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/categories" element={
-        <Layout title="Categories" description="Manage product categories">
-          <Categories />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Categories" description="Manage product categories">
+            <Categories />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/payments" element={
-        <Layout title="Payments" description="Payment records">
-          <Payments />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Payments" description="Payment records">
+            <Payments />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/messages" element={
-        <Layout title="Messages" description="User messages">
-          <Messages />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Messages" description="User messages">
+            <Messages />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/forum" element={
-        <Layout title="Forum" description="Community posts">
-          <Forum />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Forum" description="Community posts">
+            <Forum />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/reports" element={
-        <Layout title="Reports" description="Analytics and insights">
-          <Reports />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Reports" description="Analytics and insights">
+            <Reports />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/notifications" element={
-        <Layout title="Notifications" description="Stay updated with your latest alerts and messages">
-          <Notifications />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Notifications" description="Stay updated with your latest alerts and messages">
+            <Notifications />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/subscriptions" element={
-        <Layout title="Subscriptions" description="Manage your billing, plans, and subscription settings">
-          <Subscriptions />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Subscriptions" description="Manage your billing, plans, and subscription settings">
+            <Subscriptions />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/documentation" element={
-        <Layout title="Documentation" description="Installation guide, component examples, and project information">
-          <Documentation />
-        </Layout>
+        <ProtectedRoute>
+          <Layout title="Documentation" description="Installation guide, component examples, and project information">
+            <Documentation />
+          </Layout>
+        </ProtectedRoute>
       } />
       <Route path="/auth/sign-in" element={<SignIn />} />
       <Route path="/auth/sign-up" element={<SignUp />} />
@@ -160,10 +186,12 @@ function App() {
   return (
     <HashRouter>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </HashRouter>
   );

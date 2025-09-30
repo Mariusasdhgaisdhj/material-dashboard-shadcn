@@ -22,7 +22,6 @@ export async function getJson<T>(path: string): Promise<T> {
     const fetchOptions: RequestInit = {
       method: 'GET',
       mode: 'cors',
-      credentials: 'omit',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',

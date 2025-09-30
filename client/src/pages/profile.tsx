@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Smartphone, MessageCircle, Settings, Edit, Facebook, Twitter, Instagram } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Smartphone, MessageCircle, Settings, Edit, Facebook, Twitter, Instagram, LogOut, Shield, Save, X } from "lucide-react";
 import { messagesData } from "@/lib/data";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/api";
 import type { SettingsState } from "@/lib/types";
 
 export default function Profile() {
+  const { user, logout, fetchUserProfile } = useAuth();
   const [settings, setSettings] = useState<SettingsState>({
     emailOnFollow: true,
     emailOnReply: false,
@@ -19,19 +27,196 @@ export default function Profile() {
     pushNotifications: true,
     smsNotifications: false,
   });
+  const [adminData, setAdminData] = useState<any>(null);
+  const [isLoadingAdmin, setIsLoadingAdmin] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    
+   
+    avatar: ''
+  });
 
-  const handleSettingChange = (key: keyof SettingsState) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  const handleSettingChange = async (key: keyof SettingsState) => {
+    const newSettings = { ...settings, [key]: !settings[key] };
+    setSettings(newSettings);
+    
+    // Save settings to localStorage
+    localStorage.setItem('userSettings', JSON.stringify(newSettings));
+    
+    // Optionally save to backend
+    if (user) {
+      try {
+        await fetch(apiUrl(`/users/${user.id}`), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            settings: newSettings
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+      }
+    }
   };
 
-  const userProfile = {
-    name: "Richard Davis",
-    title: "CEO / Co-Founder",
-    firstName: "Alec M. Thompson",
-    mobile: "(44) 123 1234 123",
-    email: "alecthompson@mail.com",
-    location: "USA",
-    bio: "Hi, I'm Alec Thompson, Decisions: If you can't decide, the answer is no. If two equally difficult paths, choose the one more painful in the short term (pain avoidance is creating an illusion of equality).",
+  const handleEditProfile = () => {
+    if (user) {
+      setProfileForm({
+        firstName: user.firstName || user.username || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.mobile || '',
+        
+        
+        avatar: user.avatar || ''
+      });
+      setIsEditingProfile(true);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    setIsSavingProfile(true);
+    try {
+      const response = await fetch(apiUrl(`/users/${user.id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstname: profileForm.firstName,
+          lastname: profileForm.lastName,
+          email: profileForm.email,
+          phone: profileForm.phone,
+      
+        
+          profilepicture: profileForm.avatar
+        }),
+      });
+
+      if (response.ok) {
+        await fetchUserProfile(); // Refresh user data
+        setIsEditingProfile(false);
+        toast({
+          title: "Success",
+          description: "Profile updated successfully!",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to update profile",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while updating your profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingProfile(false);
+    setProfileForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+     
+      avatar: ''
+    });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Success",
+        description: "You have been logged out successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred during logout. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchAdminData = async () => {
+    if (!user?.isAdmin) return;
+    
+    setIsLoadingAdmin(true);
+    try {
+      const response = await fetch('/api/admin/stats', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAdminData(data.data || data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch admin data:', error);
+    } finally {
+      setIsLoadingAdmin(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
+    if (user?.isAdmin) {
+      fetchAdminData();
+    }
+  }, [user?.isAdmin]);
+
+  // Load saved settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('userSettings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(parsedSettings);
+      } catch (error) {
+        console.error('Failed to parse saved settings:', error);
+      }
+    }
+  }, []);
+
+  const userProfile = user ? {
+    name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username,
+    title: user.title || "User",
+    firstName: user.firstName || user.username,
+    phone: user.phone || "Not provided",
+    email: user.email || "Not provided",
+ 
+   
+    avatar: user.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face"
+  } : {
+    name: "Guest User",
+    title: "Guest",
+    firstName: "Guest",
+    phone: "Not provided",
+    email: "Not provided",
+
+    
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face"
   };
 
@@ -67,10 +252,20 @@ export default function Profile() {
                   <Settings className="mr-2 w-4 h-4" />
                   Settings
                 </Button>
+                <Button 
+                  variant="secondary" 
+                  className="bg-red-500/20 text-white hover:bg-red-500/30 hover:text-white border-0"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 w-4 h-4" />
+                  Logout
+                </Button>
               </div>
             </div>
           </div>
         </div>
+
+    
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Platform Settings */}
@@ -140,15 +335,89 @@ export default function Profile() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold text-stone-900">Profile Information</CardTitle>
-                <Button variant="ghost" size="sm" className="text-primary-500 hover:text-primary-600">
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <Dialog open={isEditingProfile} onOpenChange={setIsEditingProfile}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-primary-500 hover:text-primary-600"
+                      onClick={handleEditProfile}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white text-black">
+                    <DialogHeader>
+                      <DialogTitle>Edit Profile</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            value={profileForm.firstName}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
+                            placeholder="Enter your first name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            value={profileForm.lastName}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
+                            placeholder="Enter your last name"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileForm.email}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="Enter your email"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          value={profileForm.phone}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="Enter your mobile number"
+                        />
+                      </div>
+                     
+                     
+                      <div>
+                        <Label htmlFor="avatar">Profile Picture URL</Label>
+                        <Input
+                          id="avatar"
+                          value={profileForm.avatar}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, avatar: e.target.value }))}
+                          placeholder="Enter profile picture URL"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button variant="outline" onClick={handleCancelEdit}>
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+                          <Save className="w-4 h-4 mr-2" />
+                          {isSavingProfile ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-gray-600 mb-6">
-                {userProfile.bio}
-              </div>
+              
 
               <div className="space-y-4">
                 <div>
@@ -157,16 +426,13 @@ export default function Profile() {
                 </div>
                 <div>
                   <label className="text-sm font-normal text-gray-900">Mobile:</label>
-                  <p className="text-sm text-gray-600 mt-1">{userProfile.mobile}</p>
+                  <p className="text-sm text-gray-600 mt-1">{userProfile.phone}</p>
                 </div>
                 <div>
                   <label className="text-sm font-normal text-gray-900">Email:</label>
                   <p className="text-sm text-gray-600 mt-1">{userProfile.email}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-normal text-gray-900">Location:</label>
-                  <p className="text-sm text-gray-600 mt-1">{userProfile.location}</p>
-                </div>
+               
                 <div>
                   <label className="text-sm font-normal text-gray-900">Social:</label>
                   <div className="flex space-x-3 mt-1">
@@ -188,7 +454,7 @@ export default function Profile() {
           {/* Messages */}
           <Card className="border-gray-200">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900">Platform Settings</CardTitle>
+              <CardTitle className="text-lg font-semibold text-gray-900">Messages</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
