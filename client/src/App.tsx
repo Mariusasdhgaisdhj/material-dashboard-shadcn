@@ -13,6 +13,12 @@ import { useState } from "react";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Tables from "@/pages/tables";
+import Orders from "@/pages/orders";
+import Categories from "@/pages/categories";
+import Payments from "@/pages/payments";
+import Messages from "@/pages/messages";
+import Forum from "@/pages/forum";
+import Reports from "@/pages/reports";
 import Notifications from "@/pages/notifications";
 import Subscriptions from "@/pages/subscriptions";
 import Documentation from "@/pages/documentation";
@@ -96,6 +102,36 @@ function Router() {
       <Route path="/tables" element={
         <Layout title="Tables" description="Browse and manage data across different views">
           <Tables />
+        </Layout>
+      } />
+      <Route path="/orders" element={
+        <Layout title="Orders" description="View recent orders">
+          <Orders />
+        </Layout>
+      } />
+      <Route path="/categories" element={
+        <Layout title="Categories" description="Manage product categories">
+          <Categories />
+        </Layout>
+      } />
+      <Route path="/payments" element={
+        <Layout title="Payments" description="Payment records">
+          <Payments />
+        </Layout>
+      } />
+      <Route path="/messages" element={
+        <Layout title="Messages" description="User messages">
+          <Messages />
+        </Layout>
+      } />
+      <Route path="/forum" element={
+        <Layout title="Forum" description="Community posts">
+          <Forum />
+        </Layout>
+      } />
+      <Route path="/reports" element={
+        <Layout title="Reports" description="Analytics and insights">
+          <Reports />
         </Layout>
       } />
       <Route path="/notifications" element={

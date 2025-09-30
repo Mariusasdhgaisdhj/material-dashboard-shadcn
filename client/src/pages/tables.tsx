@@ -4,17 +4,68 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { MoreVertical } from "lucide-react";
-import { authorsData, projectsData } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { getJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function Tables() {
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery({ 
+    queryKey: ["/users?page=1&limit=20"], 
+    queryFn: () => getJson<any>("/users?page=1&limit=20") 
+  });
+  const { data: products, isLoading: productsLoading, error: productsError } = useQuery({ 
+    queryKey: ["/products?page=1&limit=20"], 
+    queryFn: () => getJson<any>("/products?page=1&limit=20") 
+  });
+  
+  // Handle backend response format: { success: true, data: [...] }
+  const authorsData = users?.success && Array.isArray(users.data) ? users.data : [];
+  const projectsData = products?.success && Array.isArray(products.data) ? products.data : [];
+  
+  const isLoading = usersLoading || productsLoading;
+  const hasError = usersError || productsError;
+  
+  if (isLoading) {
+    return (
+      <div className="h-full overflow-y-auto p-6 custom-scrollbar">
+        <div className="space-y-6">
+          <Card className="border-stone-200">
+            <CardHeader className="border-b border-stone-200">
+              <CardTitle className="text-lg font-semibold text-stone-900">Loading...</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="text-center text-stone-500">Loading data...</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="h-full overflow-y-auto p-6 custom-scrollbar">
+        <div className="space-y-6">
+          <Card className="border-stone-200">
+            <CardHeader className="border-b border-stone-200">
+              <CardTitle className="text-lg font-semibold text-stone-900">Error</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="text-center text-red-500">Error loading data: {usersError?.message || productsError?.message}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="h-full overflow-y-auto p-6 custom-scrollbar">
       <div className="space-y-6">
         {/* Authors Table */}
         <Card className="border-stone-200">
           <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Authors table</CardTitle>
+            <CardTitle className="text-lg font-semibold text-stone-900">Users ({authorsData.length})</CardTitle>
           </CardHeader>
           
           <CardContent className="p-0">
@@ -40,36 +91,34 @@ export default function Tables() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
-                  {authorsData.map((author) => (
+                  {authorsData.map((author: any) => (
                     <tr key={author.id} className="hover:bg-stone-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <Avatar className="w-10 h-10">
-                            <AvatarImage src={author.avatar} alt={author.name} />
+                            <AvatarImage src={author.avatar || ""} alt={author.name || author.email} />
                             <AvatarFallback>
-                              {author.name.split(' ').map(n => n[0]).join('')}
+                              {(author.name || author.email || "U").toString().split(' ').map((n: string) => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
                           <div className="ml-4">
-                            <div className="text-sm font-normal text-stone-900">{author.name}</div>
+                            <div className="text-sm font-normal text-stone-900">{author.name || author.email}</div>
                             <div className="text-sm text-stone-500">{author.email}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-stone-900">{author.role}</div>
-                        <div className="text-sm text-stone-500">{author.department}</div>
+                        <div className="text-sm text-stone-900">{author.role || (author.verified ? "Verified" : "User")}</div>
+                        <div className="text-sm text-stone-500">{author.department || ""}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge 
-                          variant={author.status === 'online' ? 'default' : 'secondary'}
+                          variant={'secondary'}
                           className={cn(
-                            author.status === 'online' 
-                              ? 'bg-green-100 text-green-800 hover:bg-green-100' 
-                              : 'bg-stone-100 text-stone-800 hover:bg-stone-100'
+                            'bg-stone-100 text-stone-800 hover:bg-stone-100'
                           )}
                         >
-                          {author.status === 'online' ? 'Online' : 'Offline'}
+                          Active
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
@@ -88,10 +137,10 @@ export default function Tables() {
           </CardContent>
         </Card>
 
-        {/* Projects Table */}
+        {/* Products Table */}
         <Card className="border-stone-200">
           <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Projects table</CardTitle>
+            <CardTitle className="text-lg font-semibold text-stone-900">Products ({projectsData.length})</CardTitle>
           </CardHeader>
           
           <CardContent className="p-0">
@@ -117,41 +166,37 @@ export default function Tables() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
-                  {projectsData.map((project) => (
-                    <tr key={project.id} className="hover:bg-stone-50">
+                  {projectsData.map((p: any) => (
+                    <tr key={p.id || p._id} className="hover:bg-stone-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center mr-3 text-sm font-bold",
-                            project.iconColor
+                            'bg-stone-200 text-stone-800'
                           )}>
-                            {project.icon.length === 1 ? project.icon : project.icon.charAt(0).toUpperCase()}
+                            {(p.name || 'P')[0]}
                           </div>
-                          <span className="font-normal text-stone-900">{project.name}</span>
+                          <span className="font-normal text-stone-900">{p.name || p.title}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                        {project.budget}
+                        {p.price ?? p.offerPrice ?? '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge 
                           variant="secondary"
                           className={cn(
-                            project.status === 'working' && 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-                            project.status === 'done' && 'bg-green-100 text-green-800 hover:bg-green-100',
-                            project.status === 'cancelled' && 'bg-red-100 text-red-800 hover:bg-red-100'
+                            'bg-blue-100 text-blue-800 hover:bg-blue-100'
                           )}
                         >
-                          {project.status === 'working' && 'Working'}
-                          {project.status === 'done' && 'Done'}
-                          {project.status === 'cancelled' && 'Cancelled'}
+                          In Catalog
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-sm text-stone-600 mr-2">{project.completion}%</span>
+                          <span className="text-sm text-stone-600 mr-2">{(p.quantity ?? 0).toString()}</span>
                           <Progress 
-                            value={project.completion} 
+                            value={Math.min(100, Number(p.quantity ?? 0))} 
                             className="w-32 h-2"
                           />
                         </div>
