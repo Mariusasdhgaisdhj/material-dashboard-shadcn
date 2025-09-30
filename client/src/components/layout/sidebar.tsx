@@ -25,11 +25,7 @@ const navItems = [
     href: "/profile",
     icon: User,
   },
-  {
-    title: "Tables",
-    href: "/tables",
-    icon: Table,
-  },
+
   {
     title: "Orders",
     href: "/orders",

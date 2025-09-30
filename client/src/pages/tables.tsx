@@ -74,10 +74,10 @@ export default function Tables() {
                 <thead className="bg-stone-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
-                      AUTHOR
+                      NAME
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
-                      FUNCTION
+                      BUSINESS NAME
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
                       STATUS
@@ -149,16 +149,16 @@ export default function Tables() {
                 <thead className="bg-stone-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
-                      PROJECT
+                      PRODUCT NAME
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
-                      BUDGET
+                      PRICE
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
                       STATUS
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
-                      COMPLETION
+                      STOCKS
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">
                       ACTION
