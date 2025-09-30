@@ -3,8 +3,41 @@ import { useQuery } from "@tanstack/react-query";
 import { getJson } from "@/lib/api";
 import { ProjectsTable } from "@/components/dashboard/projects-table";
 import { ChartsShowcase } from "@/components/dashboard/charts-showcase";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { MiniChart } from "@/components/dashboard/mini-chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { 
+  AreaChart, 
+  Area, 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  ResponsiveContainer 
+} from "recharts";
+import { 
+  TrendingUp, 
+  Users, 
+  ShoppingCart, 
+  Package, 
+  DollarSign, 
+  Building2,
+  User,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail
+} from "lucide-react";
 import peopleBackground from "/images/material-persons.jpg";
 
 export default function Dashboard() {
@@ -28,14 +61,30 @@ export default function Dashboard() {
   
   const isLoading = productsLoading || usersLoading || ordersLoading;
   
+  // Calculate total revenue from real data
+  const totalRevenue = orders?.success && Array.isArray(orders.data) ? 
+    orders.data.reduce((sum: any, order: any) => sum + (order.totalPrice || 0), 0) : 0;
+
   return (
     <div className="h-full overflow-y-auto p-6 custom-scrollbar">
-   
-
-
-      <StatsGrid />
-      <ProjectsTable />
-      <ChartsShowcase />
+      <StatsGrid 
+        ordersCount={ordersCount}
+        productsCount={productsCount}
+        usersCount={usersCount}
+        totalRevenue={totalRevenue}
+        recentOrders={orders?.success && Array.isArray(orders.data) ? orders.data.slice(0, 5) : []}
+        products={products}
+      />
+      <ProjectsTable 
+        users={users}
+        products={products}
+        orders={orders}
+      />
+      <ChartsShowcase 
+        orders={orders}
+        products={products}
+        users={users}
+      />
     </div>
   );
 }
