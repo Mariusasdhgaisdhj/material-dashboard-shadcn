@@ -26,14 +26,21 @@ import Subscriptions from "@/pages/subscriptions";
 import Documentation from "@/pages/documentation";
 import SignIn from "@/pages/auth/sign-in";
 import SignUp from "@/pages/auth/sign-up";
+import Users from "@/pages/users";
+import Products from "@/pages/products";
 import NotFound from "@/pages/not-found";
+
+
+
 
 function Layout({ children, title, description }: { children: React.ReactNode; title?: string; description?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [themeConfigOpen, setThemeConfigOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-stone-50 grain-texture">
+    
+    <div className="flex h-screen bg-black-50 grain-texture ">
+      
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div 
@@ -67,6 +74,8 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
         <Card className="flex-1 border border-stone-200 bg-white relative z-20">
           {title && (
             <div className="pt-6 px-3 lg:px-6 pb-4">
+       
+              
               <h1 className="text-xl font-semibold text-stone-900 mb-1">{title}</h1>
               {description && (
                 <p className="text-sm text-stone-600">{description}</p>
@@ -105,6 +114,21 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       } />
+      <Route path="/users" element={
+        <ProtectedRoute>
+          <Layout title="Users" description="Manage users">
+            <Users />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/products" element={
+        <ProtectedRoute>
+          <Layout title="Products" description="Manage products">
+            <Products />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
       <Route path="/tables" element={
         <ProtectedRoute>
           <Layout title="Tables" description="Browse and manage data across different views">

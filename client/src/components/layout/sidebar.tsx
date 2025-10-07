@@ -10,7 +10,9 @@ import {
   LogIn, 
   UserPlus,
   X,
-  BarChart3
+  BarChart3,
+  Users,
+  Boxes
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -25,7 +27,16 @@ const navItems = [
     href: "/profile",
     icon: User,
   },
-
+  {
+    title: "Users",
+    href: "/users",
+    icon: Users,
+  },
+  {
+    title: "Products",
+    href: "/products",
+    icon: Boxes,
+  },
   {
     title: "Orders",
     href: "/orders",
@@ -56,10 +67,7 @@ const navItems = [
     href: "/reports",
     icon: BarChart3,
   },
-
 ];
-
-
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
@@ -108,11 +116,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         })}
 
         {/* Auth Section */}
-    
+        
 
         {/* Documentation Link */}
         <div className="mt-auto pt-4 border-t border-stone-200">
-         
+          
             <div
               className={cn(
                 "flex items-center text-sm font-normal rounded-lg cursor-pointer",

@@ -54,10 +54,16 @@ export default function Dashboard() {
     queryFn: () => getJson<any>("/orders?page=1&limit=50") 
   });
   
-  // Handle backend response format: { success: true, data: [...] }
-  const productsCount = products?.success && Array.isArray(products.data) ? products.data.length : 0;
-  const usersCount = users?.success && Array.isArray(users.data) ? users.data.length : 0;
-  const ordersCount = orders?.success && Array.isArray(orders.data) ? orders.data.length : 0;
+  // Normalize arrays from backend: supports {data:[...]} and {data:{data:[...]}}
+  const normalize = (res: any) => (res?.success ? (Array.isArray(res.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : [])) : []);
+  const productsArr: any[] = normalize(products);
+  const usersArr: any[] = normalize(users);
+  const ordersArr: any[] = normalize(orders);
+
+  const productsCount = productsArr.length;
+  const ordersCount = ordersArr.length;
+  // Count business owners (sellers)
+  const sellersCount = usersArr.filter((u: any) => u.role === 'seller' || !!u.business_name).length;
   
   const isLoading = productsLoading || usersLoading || ordersLoading;
   
@@ -70,9 +76,9 @@ export default function Dashboard() {
       <StatsGrid 
         ordersCount={ordersCount}
         productsCount={productsCount}
-        usersCount={usersCount}
+        usersCount={sellersCount}
         totalRevenue={totalRevenue}
-        recentOrders={orders?.success && Array.isArray(orders.data) ? orders.data.slice(0, 5) : []}
+        recentOrders={ordersArr.slice(0, 5)}
         products={products}
       />
       <ProjectsTable 

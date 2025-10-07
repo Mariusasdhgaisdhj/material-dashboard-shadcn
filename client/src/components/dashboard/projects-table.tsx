@@ -42,25 +42,62 @@ interface ProjectsTableProps {
 }
 
 export function ProjectsTable({ users, products, orders }: ProjectsTableProps) {
-  // Calculate business data from real data
-  const businessData = users?.success && Array.isArray(users.data) ? 
-    users.data.slice(0, 5).map((user: any) => {
-      const userProducts = products?.success && Array.isArray(products.data) ? 
-        products.data.filter((product: any) => product.userId === user.id) : [];
-      const userOrders = orders?.success && Array.isArray(orders.data) ? 
-        orders.data.filter((order: any) => order.userId === user.id) : [];
-      const revenue = userOrders.reduce((sum: any, order: any) => sum + (order.totalPrice || 0), 0);
+  const normalize = (res: any) => (res?.success ? (Array.isArray(res.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : [])) : []);
+  const usersArr: any[] = normalize(users);
+  const productsArr: any[] = normalize(products);
+  const ordersArr: any[] = normalize(orders);
+
+  // Calculate business data from real data (sellers only)
+  const businessData = usersArr
+    .filter((u: any) => u.role === 'seller' || !!u.business_name)
+    .map((user: any) => {
+      const currentUserId = user.id || user._id;
+      const userProducts = productsArr.filter((p: any) => {
+        const pid = p.id || p._id;
+        const prodSeller = (
+          p.seller_id ||
+          p.sellerId?._id ||
+          p.sellerId ||
+          p.users?.id ||
+          p.users?._id ||
+          p.seller?.id ||
+          p.seller?._id
+        );
+        return prodSeller === currentUserId;
+      });
+      // Revenue: sum order_items amounts for items whose product seller matches this user
+      const revenue = ordersArr.reduce((sum: number, order: any) => {
+        const items: any[] = Array.isArray(order.order_items) ? order.order_items : [];
+        const sellerItemsTotal = items.reduce((sub: number, it: any) => {
+          const itemSellerId = (
+            it.products?.seller_id ||
+            it.products?.sellerId?._id ||
+            it.products?.sellerId ||
+            it.products?.users?.id ||
+            it.products?.users?._id ||
+            it.seller_id ||
+            it.sellerId
+          );
+          if (itemSellerId !== currentUserId) return sub;
+          const qty = Number(it.quantity || 1);
+          const price = Number(it.price || it.products?.price || 0);
+          return sub + qty * price;
+        }, 0);
+        return sum + sellerItemsTotal;
+      }, 0);
       const stockCount = userProducts.length;
-      
       return {
         id: user.id,
-        name: user.name || "Business Owner",
-        owner: user.name || "Owner",
-        revenue: revenue,
-        stockCount: stockCount,
-        completion: Math.min(100, Math.floor((stockCount / 10) * 100)) // Simulate completion based on stock
+        name: user.business_name || user.businessName || 'Business',
+        owner: (user.firstname && user.lastname) ? `${user.firstname} ${user.lastname}` : (user.name || 'Owner'),
+        revenue,
+        stockCount,
+        products: userProducts.map((p: any) => ({ id: p.id || p._id, name: p.name, price: p.price })),
+        completion: Math.min(100, Math.floor((stockCount / 10) * 100))
       };
-    }) : [];
+    })
+    .sort((a: any, b: any) => b.stockCount - a.stockCount)
+    .slice(0, 5);
 
   return (
     <Card className="border-gray-200">
@@ -102,11 +139,19 @@ export function ProjectsTable({ users, products, orders }: ProjectsTableProps) {
               {businessData.length > 0 ? businessData.map((business: any) => (
                 <tr key={business.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                    <div className="flex items-start">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3 bg-blue-100">
                         <ShoppingBag className="w-4 h-4 text-blue-600" />
                       </div>
-                      <span className="font-normal text-gray-900">{business.name}</span>
+                      <div className="flex flex-col">
+                        <span className="font-normal text-gray-900">{business.name}</span>
+                        {Array.isArray(business.products) && business.products.length > 0 && (
+                          <span className="text-xs text-gray-500 max-w-[320px] truncate">
+                            {business.products.slice(0,3).map((p: any) => p.name).filter(Boolean).join(', ')}
+                            {business.products.length > 3 ? ` +${business.products.length - 3} more` : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

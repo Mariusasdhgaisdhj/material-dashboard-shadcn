@@ -36,29 +36,19 @@ export default function Profile() {
     lastName: '',
     email: '',
     phone: '',
-    
-   
     avatar: ''
   });
 
   const handleSettingChange = async (key: keyof SettingsState) => {
     const newSettings = { ...settings, [key]: !settings[key] };
     setSettings(newSettings);
-    
-    // Save settings to localStorage
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
-    
-    // Optionally save to backend
     if (user) {
       try {
         await fetch(apiUrl(`/users/${user.id}`), {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            settings: newSettings
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: newSettings })
         });
       } catch (error) {
         console.error('Failed to save settings:', error);
@@ -69,13 +59,11 @@ export default function Profile() {
   const handleEditProfile = () => {
     if (user) {
       setProfileForm({
-        firstName: user.firstName || user.username || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.mobile || '',
-        
-        
-        avatar: user.avatar || ''
+        firstName: (user as any).firstName || (user as any).username || '',
+        lastName: (user as any).lastName || '',
+        email: (user as any).email || '',
+        phone: (user as any).mobile || (user as any).phone || '',
+        avatar: (user as any).avatar || ''
       });
       setIsEditingProfile(true);
     }
@@ -83,47 +71,36 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     if (!user) return;
-    
     setIsSavingProfile(true);
     try {
+      const updatePayload: Record<string, any> = {};
+      if (profileForm.firstName.trim()) updatePayload.firstname = profileForm.firstName.trim();
+      if (profileForm.lastName.trim()) updatePayload.lastname = profileForm.lastName.trim();
+      if (profileForm.email.trim()) updatePayload.email = profileForm.email.trim();
+      if (profileForm.phone.trim()) updatePayload.phone = profileForm.phone.trim();
+      if (profileForm.avatar.trim()) updatePayload.profilepicture = profileForm.avatar.trim();
+
       const response = await fetch(apiUrl(`/users/${user.id}`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstname: profileForm.firstName,
-          lastname: profileForm.lastName,
-          email: profileForm.email,
-          phone: profileForm.phone,
-      
-        
-          profilepicture: profileForm.avatar
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload)
       });
 
       if (response.ok) {
-        await fetchUserProfile(); // Refresh user data
+        await fetchUserProfile();
         setIsEditingProfile(false);
-        toast({
-          title: "Success",
-          description: "Profile updated successfully!",
-        });
+        toast({ title: 'Success', description: 'Profile updated successfully!' });
       } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to update profile",
-          variant: "destructive",
-        });
+        let description = 'Failed to update profile';
+        try {
+          const err = await response.json();
+          description = err?.message || description;
+        } catch {}
+        toast({ title: 'Error', description, variant: 'destructive' });
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while updating your profile",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'An error occurred while updating your profile', variant: 'destructive' });
     } finally {
       setIsSavingProfile(false);
     }
@@ -131,93 +108,47 @@ export default function Profile() {
 
   const handleCancelEdit = () => {
     setIsEditingProfile(false);
-    setProfileForm({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-     
-      avatar: ''
-    });
+    setProfileForm({ firstName: '', lastName: '', email: '', phone: '', avatar: '' });
   };
 
   const handleLogout = async () => {
     try {
       await logout();
-      toast({
-        title: "Success",
-        description: "You have been logged out successfully!",
-      });
+      toast({ title: 'Success', description: 'You have been logged out successfully!' });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred during logout. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'An error occurred during logout. Please try again.', variant: 'destructive' });
     }
   };
 
   const fetchAdminData = async () => {
-    if (!user?.isAdmin) return;
-    
-    setIsLoadingAdmin(true);
-    try {
-      const response = await fetch('/api/admin/stats', {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAdminData(data.data || data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch admin data:', error);
-    } finally {
-      setIsLoadingAdmin(false);
-    }
+    // No admin stats endpoint available; skip to avoid console JSON parse errors
+    return;
   };
 
   useEffect(() => {
     fetchUserProfile();
-    if (user?.isAdmin) {
-      fetchAdminData();
-    }
+    if (user?.isAdmin) fetchAdminData();
   }, [user?.isAdmin]);
 
-  // Load saved settings from localStorage
   useEffect(() => {
     const savedSettings = localStorage.getItem('userSettings');
     if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setSettings(parsedSettings);
-      } catch (error) {
-        console.error('Failed to parse saved settings:', error);
-      }
+      try { setSettings(JSON.parse(savedSettings)); } catch {}
     }
   }, []);
 
   const userProfile = user ? {
-    name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username,
-    title: user.title || "User",
-    firstName: user.firstName || user.username,
-    phone: user.phone || "Not provided",
-    email: user.email || "Not provided",
- 
-   
-    avatar: user.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face"
+    name: (user as any).firstName && (user as any).lastName ? `${(user as any).firstName} ${(user as any).lastName}` : (user as any).username,
+    title: (user as any).title || 'User',
+    firstName: (user as any).firstName || (user as any).username,
+    lastName: (user as any).lastName || (user as any).username,
+    phone: (user as any).mobile || (user as any).phone || 'Not provided',
+    email: (user as any).email || 'Not provided',
+    shippingFee: (user as any).shipping_fee ?? undefined,
+    avatar: (user as any).avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face'
   } : {
-    name: "Guest User",
-    title: "Guest",
-    firstName: "Guest",
-    phone: "Not provided",
-    email: "Not provided",
-
-    
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face"
+    name: 'Guest User', title: 'Guest', firstName: 'Guest', phone: 'Not provided', email: 'Not provided', shippingFee: undefined,
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face'
   };
 
   return (
@@ -231,7 +162,7 @@ export default function Profile() {
                 <Avatar className="w-16 h-16 border-2 border-white/20">
                   <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
                   <AvatarFallback className="bg-stone-700 text-white">
-                    {userProfile.name.split(' ').map(n => n[0]).join('')}
+                    {String(userProfile.name).split(' ').map((part: string) => part[0] ?? '').join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="ml-4">
@@ -240,23 +171,8 @@ export default function Profile() {
                 </div>
               </div>
               <div className="flex space-x-3">
-                <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20 hover:text-white border-0">
-                  <Smartphone className="mr-2 w-4 h-4" />
-                  App
-                </Button>
-                <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20 hover:text-white border-0">
-                  <MessageCircle className="mr-2 w-4 h-4" />
-                  Message
-                </Button>
-                <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20 hover:text-white border-0">
-                  <Settings className="mr-2 w-4 h-4" />
-                  Settings
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  className="bg-red-500/20 text-white hover:bg-red-500/30 hover:text-white border-0"
-                  onClick={handleLogout}
-                >
+                
+                <Button variant="secondary" className="bg-red-500/20 text-white hover:bg-red-500/30 hover:text-white border-0" onClick={handleLogout}>
                   <LogOut className="mr-2 w-4 h-4" />
                   Logout
                 </Button>
@@ -265,11 +181,9 @@ export default function Profile() {
           </div>
         </div>
 
-    
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Platform Settings */}
-          <Card className="border-stone-200">
+          <Card className="border-black-200">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-stone-900">Platform Settings</CardTitle>
             </CardHeader>
@@ -279,24 +193,15 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-stone-700">Email me when someone follows me</span>
-                    <Switch 
-                      checked={settings.emailOnFollow}
-                      onCheckedChange={() => handleSettingChange('emailOnFollow')}
-                    />
+                    <Switch checked={settings.emailOnFollow} onCheckedChange={() => handleSettingChange('emailOnFollow')} />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-stone-700">Email me when someone answers on my post</span>
-                    <Switch 
-                      checked={settings.emailOnReply}
-                      onCheckedChange={() => handleSettingChange('emailOnReply')}
-                    />
+                    <Switch checked={settings.emailOnReply} onCheckedChange={() => handleSettingChange('emailOnReply')} />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-stone-700">Email me when someone mentions me</span>
-                    <Switch 
-                      checked={settings.emailOnMention}
-                      onCheckedChange={() => handleSettingChange('emailOnMention')}
-                    />
+                    <Switch checked={settings.emailOnMention} onCheckedChange={() => handleSettingChange('emailOnMention')} />
                   </div>
                 </div>
               </div>
@@ -306,24 +211,15 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-stone-700">New launches and projects</span>
-                    <Switch 
-                      checked={settings.newLaunches}
-                      onCheckedChange={() => handleSettingChange('newLaunches')}
-                    />
+                    <Switch checked={settings.newLaunches} onCheckedChange={() => handleSettingChange('newLaunches')} />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-stone-700">Monthly product updates</span>
-                    <Switch 
-                      checked={settings.monthlyUpdates}
-                      onCheckedChange={() => handleSettingChange('monthlyUpdates')}
-                    />
+                    <Switch checked={settings.monthlyUpdates} onCheckedChange={() => handleSettingChange('monthlyUpdates')} />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-stone-700">Subscribe to newsletter</span>
-                    <Switch 
-                      checked={settings.newsletter}
-                      onCheckedChange={() => handleSettingChange('newsletter')}
-                    />
+                    <Switch checked={settings.newsletter} onCheckedChange={() => handleSettingChange('newsletter')} />
                   </div>
                 </div>
               </div>
@@ -331,18 +227,13 @@ export default function Profile() {
           </Card>
 
           {/* Profile Information */}
-          <Card className="border-stone-200">
+          <Card className="border-black-200">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold text-stone-900">Profile Information</CardTitle>
                 <Dialog open={isEditingProfile} onOpenChange={setIsEditingProfile}>
                   <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-primary-500 hover:text-primary-600"
-                      onClick={handleEditProfile}
-                    >
+                    <Button variant="ghost" size="sm" className="text-primary-500 hover:text-primary-600" onClick={handleEditProfile}>
                       <Edit className="w-4 h-4" />
                     </Button>
                   </DialogTrigger>
@@ -354,62 +245,48 @@ export default function Profile() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            value={profileForm.firstName}
-                            onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
-                            placeholder="Enter your first name"
-                          />
+                          <Input id="firstName" value={profileForm.firstName} onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))} placeholder="Enter your first name" />
                         </div>
                         <div>
                           <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            value={profileForm.lastName}
-                            onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
-                            placeholder="Enter your last name"
-                          />
+                          <Input id="lastName" value={profileForm.lastName} onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))} placeholder="Enter your last name" />
                         </div>
                       </div>
                       <div>
                         <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={profileForm.email}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="Enter your email"
-                        />
+                        <Input id="email" type="email" value={profileForm.email} onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
                       </div>
                       <div>
                         <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          value={profileForm.phone}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                          placeholder="Enter your mobile number"
-                        />
+                        <Input id="phone" value={profileForm.phone} onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))} placeholder="Enter your mobile number" />
                       </div>
-                     
-                     
                       <div>
-                        <Label htmlFor="avatar">Profile Picture URL</Label>
-                        <Input
-                          id="avatar"
-                          value={profileForm.avatar}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, avatar: e.target.value }))}
-                          placeholder="Enter profile picture URL"
-                        />
+                        <Label htmlFor="avatar">Profile Picture</Label>
+                        <Input id="avatar" type="file" accept="image/*" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !user) return;
+                          try {
+                            const fd = new FormData();
+                            fd.append('img', file);
+                            const resp = await fetch(apiUrl(`/users/${user.id}/avatar`), { method: 'POST', body: fd });
+                            const data = await resp.json();
+                            if (resp.ok && data?.data?.url) {
+                              setProfileForm(prev => ({ ...prev, avatar: data.data.url }));
+                              toast({ title: 'Uploaded', description: 'Profile picture uploaded.' });
+                            } else {
+                              toast({ title: 'Upload failed', description: data?.message || 'Unable to upload image', variant: 'destructive' });
+                            }
+                          } catch (err) {
+                            toast({ title: 'Upload error', description: String(err), variant: 'destructive' });
+                          }
+                        }} />
+                        {profileForm.avatar && (
+                          <p className="text-xs text-stone-500 mt-1">Uploaded: {profileForm.avatar}</p>
+                        )}
                       </div>
                       <div className="flex justify-end space-x-2 pt-4">
-                        <Button variant="outline" onClick={handleCancelEdit}>
-                          <X className="w-4 h-4 mr-2" />
-                          Cancel
-                        </Button>
-                        <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
-                          <Save className="w-4 h-4 mr-2" />
-                          {isSavingProfile ? "Saving..." : "Save Changes"}
-                        </Button>
+                        <Button variant="outline" onClick={handleCancelEdit}><X className="w-4 h-4 mr-2" />Cancel</Button>
+                        <Button onClick={handleSaveProfile} disabled={isSavingProfile}><Save className="w-4 h-4 mr-2" />{isSavingProfile ? 'Saving...' : 'Save Changes'}</Button>
                       </div>
                     </div>
                   </DialogContent>
@@ -417,12 +294,14 @@ export default function Profile() {
               </div>
             </CardHeader>
             <CardContent>
-              
-
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-normal text-gray-900">First Name:</label>
                   <p className="text-sm text-gray-600 mt-1">{userProfile.firstName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-normal text-gray-900">Last Name:</label>
+                  <p className="text-sm text-gray-600 mt-1">{userProfile.lastName}</p>
                 </div>
                 <div>
                   <label className="text-sm font-normal text-gray-900">Mobile:</label>
@@ -432,27 +311,20 @@ export default function Profile() {
                   <label className="text-sm font-normal text-gray-900">Email:</label>
                   <p className="text-sm text-gray-600 mt-1">{userProfile.email}</p>
                 </div>
-               
-                <div>
-                  <label className="text-sm font-normal text-gray-900">Social:</label>
-                  <div className="flex space-x-3 mt-1">
-                    <Button variant="ghost" size="sm" className="p-1 h-auto text-blue-600 hover:text-blue-700">
-                      <Facebook className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="p-1 h-auto text-blue-400 hover:text-blue-500">
-                      <Twitter className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="p-1 h-auto text-pink-600 hover:text-pink-700">
-                      <Instagram className="w-4 h-4" />
-                    </Button>
+                {userProfile.shippingFee !== undefined && (
+                  <div>
+                    <label className="text-sm font-normal text-gray-900">Shipping Fee:</label>
+                    <p className="text-sm text-gray-600 mt-1">{String(userProfile.shippingFee)}</p>
                   </div>
+                )}
+                
                 </div>
-              </div>
+             
             </CardContent>
           </Card>
 
           {/* Messages */}
-          <Card className="border-gray-200">
+          <Card className="border-black-200">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-900">Messages</CardTitle>
             </CardHeader>
@@ -463,22 +335,14 @@ export default function Profile() {
                     <div className="flex items-center">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={message.avatar} alt={message.sender} />
-                        <AvatarFallback>
-                          {message.sender.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
+                        <AvatarFallback>{message.sender.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                       </Avatar>
                       <div className="ml-3">
                         <p className="text-sm font-normal text-gray-900">{message.sender}</p>
                         <p className="text-xs text-gray-500">{message.preview}</p>
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-xs font-normal text-primary-600 border-primary-200 hover:bg-primary-50"
-                    >
-                      REPLY
-                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs font-normal text-primary-600 border-primary-200 hover:bg-primary-50">REPLY</Button>
                   </div>
                 ))}
               </div>
