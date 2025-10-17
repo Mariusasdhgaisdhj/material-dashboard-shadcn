@@ -34,6 +34,7 @@ export default function Users() {
       email: u.email || "",
       role: u.role || (u.isAdmin ? 'admin' : (u.isSeller ? 'seller' : 'user')),
       businessName: u.business_name || u.businessName || '',
+      sellerRequest: u.seller_request || '',
     }));
   }, [data]);
 
@@ -284,6 +285,7 @@ export default function Users() {
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Business</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Seller Request</th>
                   <th className="px-6 py-3"></th>
                 </tr>
               </thead>
@@ -294,9 +296,22 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{u.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{u.businessName || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{u.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{u.sellerRequest || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
                       <Button size="sm" variant="outline" onClick={() => setOpen({ type: 'edit', id: u.id })}>Edit</Button>
                       <Button size="sm" variant="destructive" onClick={() => setOpen({ type: 'delete', id: u.id })}>Delete</Button>
+                      {(u.sellerRequest === 'pending') && (
+                        <Button size="sm" onClick={async () => {
+                          try {
+                            const res = await fetch(apiUrl(`/users/${u.id}/approve-seller`), { method: 'POST' });
+                            if (!res.ok) throw new Error('Approve failed');
+                            toast({ title: 'Approved', description: 'Seller request approved' });
+                            await refetch();
+                          } catch (e:any) {
+                            toast({ title: 'Error', description: e?.message||'Approve failed', variant: 'destructive' });
+                          }
+                        }}>Approve</Button>
+                      )}
                       {u.role !== 'admin' && (
                         <Button size="sm" onClick={() => setOpen({ type: 'promote', id: u.id })}>Promote</Button>
                       )}

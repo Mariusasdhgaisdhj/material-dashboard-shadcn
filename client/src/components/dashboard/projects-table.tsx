@@ -65,22 +65,20 @@ export function ProjectsTable({ users, products, orders }: ProjectsTableProps) {
         );
         return prodSeller === currentUserId;
       });
-      // Revenue: sum order_items amounts for items whose product seller matches this user
+      // Revenue: sum order amounts for orders that contain products from this seller
       const revenue = ordersArr.reduce((sum: number, order: any) => {
-        const items: any[] = Array.isArray(order.order_items) ? order.order_items : [];
+        const items: any[] = Array.isArray(order.items) ? order.items : [];
         const sellerItemsTotal = items.reduce((sub: number, it: any) => {
-          const itemSellerId = (
-            it.products?.seller_id ||
-            it.products?.sellerId?._id ||
-            it.products?.sellerId ||
-            it.products?.users?.id ||
-            it.products?.users?._id ||
-            it.seller_id ||
-            it.sellerId
+          // Check if this item's product belongs to this seller
+          const itemProductId = it.productID;
+          const belongsToSeller = userProducts.some((p: any) => 
+            (p.id || p._id) === itemProductId
           );
-          if (itemSellerId !== currentUserId) return sub;
+          
+          if (!belongsToSeller) return sub;
+          
           const qty = Number(it.quantity || 1);
-          const price = Number(it.price || it.products?.price || 0);
+          const price = Number(it.price || 0);
           return sub + qty * price;
         }, 0);
         return sum + sellerItemsTotal;

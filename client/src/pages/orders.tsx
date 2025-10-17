@@ -58,13 +58,15 @@ export default function Orders() {
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Payment Method</th>
+                  <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Reference</th>
+                  <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Billing Address</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Date</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-stone-200">
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-stone-500">No orders found</td>
+                    <td colSpan={8} className="px-6 py-8 text-center text-stone-500">No orders found</td>
                   </tr>
                 ) : (
                   rows.map((order, idx) => (
@@ -76,23 +78,35 @@ export default function Orders() {
                         {order.userID?.name || "Unknown"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge 
-                          variant="secondary" 
-                          className={`${
-                            order.orderStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                            order.orderStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            order.orderStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
-                            'bg-blue-100 text-blue-800'
-                          } hover:opacity-80`}
-                        >
-                          {order.orderStatus || "-"}
-                        </Badge>
+                        {(() => {
+                          const raw = (order.payment_status || order.paymentStatus || order.status || order.order_status || order.orderStatus || 'pending');
+                          const s = String(raw).toLowerCase();
+                          const pm = String(order.paymentMethod || '').toLowerCase();
+                          const label = s; // No need to transform since we now use 'paid' directly
+                          const cls = label === 'paid' ? 'bg-green-100 text-green-800' : label === 'pending' ? 'bg-yellow-100 text-yellow-800' : label === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+                          return (
+                            <Badge variant="secondary" className={`${cls} hover:opacity-80`}>
+                              {label}
+                            </Badge>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 font-semibold">
                         ₱{order.totalPrice?.toLocaleString() || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
                         {order.paymentMethod || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 font-mono">
+                        {order.referenceNumber || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                        {order.billingAddress ? 
+                          `${order.billingAddress.street}, ${order.billingAddress.city}` : 
+                          order.billing_addresses?.[0] ? 
+                            `${order.billing_addresses[0].street}, ${order.billing_addresses[0].city}` : 
+                            "-"
+                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
                         {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "-"}

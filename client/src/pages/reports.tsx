@@ -1,26 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { getJson } from "@/lib/api";
-import { MiniChart } from "@/components/dashboard/mini-chart";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { 
-  AreaChart, 
-  Area, 
-  LineChart, 
-  Line, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  ResponsiveContainer 
-} from "recharts";
+import { getJson, apiUrl } from "@/lib/api";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Reports() {
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [exportType, setExportType] = useState('csv');
+  const [reportType, setReportType] = useState('orders');
+
   // Fetch data from multiple endpoints for reports
   const { data: ordersData, isLoading: ordersLoading, error: ordersError } = useQuery({ 
     queryKey: ["/orders?page=1&limit=50"], 
@@ -51,118 +47,185 @@ export default function Reports() {
   const isLoading = ordersLoading || productsLoading || usersLoading || categoriesLoading;
   const hasError = ordersError || productsError || usersError || categoriesError;
   
-  // Calculate statistics
-  const totalOrders = orders.length;
-  const totalProducts = products.length;
-  const totalUsers = users.length;
-  const totalCategories = categories.length;
-  
-  // Calculate revenue
-  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-  
-  // Calculate average order value
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-  
-  // Get order status distribution
-  const orderStatusCounts = orders.reduce((acc, order) => {
-    const status = order.orderStatus || 'unknown';
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // Get payment method distribution
-  const paymentMethodCounts = orders.reduce((acc, order) => {
-    const method = order.paymentMethod || 'unknown';
-    acc[method] = (acc[method] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Generate report templates based on data
+  const reportTemplates = [
+    { name: 'ADMIN REPORT-ORDERS', id: 'orders', count: orders.length },
+    { name: 'ADMIN REPORT-PRODUCTS', id: 'products', count: products.length },
+    { name: 'ADMIN REPORT-USERS', id: 'users', count: users.length },
+    { name: 'ADMIN REPORT-CATEGORIES', id: 'categories', count: categories.length },
+    { name: 'ADMIN REPORT-PAYMENTS', id: 'payments', count: orders.filter(o => o.paymentMethod).length },
+    { name: 'ADMIN REPORT-REVENUE', id: 'revenue', count: orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0) },
+    { name: 'ADMIN REPORT-SUMMARY', id: 'summary', count: orders.length + products.length + users.length },
+  ];
 
-  // Prepare chart data
-  const orderTrendData = orders.slice(0, 7).map((order, index) => ({
-    day: `Day ${index + 1}`,
-    orders: Math.floor(Math.random() * 10) + 1, // Simulate daily order count
-    revenue: order.totalPrice || 0
-  }));
-
-  const paymentMethodChartData = Object.entries(paymentMethodCounts).map(([method, count]) => ({
-    name: method,
-    value: count,
-    fill: method.toLowerCase().includes('gcash') ? '#22c55e' : 
-          method.toLowerCase().includes('paypal') ? '#3b82f6' : 
-          method.toLowerCase().includes('card') ? '#8b5cf6' : '#6b7280'
-  }));
-
-  const orderStatusChartData = Object.entries(orderStatusCounts).map(([status, count]) => ({
-    name: status,
-    value: count,
-    fill: status === 'completed' ? '#22c55e' :
-          status === 'pending' ? '#f59e0b' :
-          status === 'cancelled' ? '#ef4444' : '#6b7280'
-  }));
-
-  const categoryChartData = categories.slice(0, 5).map((category, index) => ({
-    name: category.name || `Category ${index + 1}`,
-    products: Math.floor(Math.random() * 20) + 1, // Simulate product count per category
-    fill: ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][index % 5]
-  }));
-
-  // Mini chart data for summary cards
-  const ordersMiniData = [2, 4, 1, 3, 5, 2, 4]; // Simulated daily order counts
-  const revenueMiniData = [1200, 1800, 900, 1500, 2100, 1300, 1900]; // Simulated daily revenue
-  const productsMiniData = [1, 2, 0, 3, 1, 2, 1]; // Simulated daily product additions
-  const usersMiniData = [0, 1, 2, 1, 0, 1, 1]; // Simulated daily user registrations
-
-  // Chart configurations
-  const orderTrendConfig = {
-    orders: {
-      label: "Orders",
-      color: "#22c55e",
-    },
-    revenue: {
-      label: "Revenue",
-      color: "#3b82f6",
-    },
+  const handleSearch = () => {
+    // Filter logic would go here
+    console.log('Searching with:', { sortOrder, emailFilter, reportType });
+    toast({
+      title: "Search Applied",
+      description: `Filtered reports by ${emailFilter ? `email: ${emailFilter}` : 'all data'} in ${sortOrder} order`,
+    });
   };
 
-  const paymentMethodConfig = {
-    value: {
-      label: "Count",
-      color: "#22c55e",
-    },
+  const generatePDF = (template: any) => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text(template.name, 20, 20);
+    
+    // Add report details
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 35);
+    doc.text(`Report ID: ${348575 - reportTemplates.indexOf(template)}`, 20, 45);
+    
+    // Add data based on template type
+    let tableData: any[] = [];
+    let headers: string[] = [];
+    
+    switch (template.id) {
+      case 'orders':
+        headers = ['Order ID', 'Customer', 'Status', 'Total', 'Payment Method', 'Date'];
+        tableData = orders.map(order => [
+          order._id?.substring(0, 8) + '...',
+          order.userID?.name || 'Unknown',
+          order.orderStatus || 'pending',
+          `₱${order.totalPrice?.toFixed(2) || '0.00'}`,
+          order.paymentMethod || 'Unknown',
+          order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '-'
+        ]);
+        break;
+      case 'products':
+        headers = ['Product ID', 'Name', 'Price', 'Category', 'Stock', 'Seller'];
+        tableData = products.map(product => [
+          product._id?.substring(0, 8) + '...',
+          product.name || 'Unknown',
+          `₱${product.price?.toFixed(2) || '0.00'}`,
+          product.category?.name || 'Unknown',
+          product.stock || 0,
+          product.seller?.businessName || 'Unknown'
+        ]);
+        break;
+      case 'users':
+        headers = ['User ID', 'Name', 'Email', 'Role', 'Verified', 'Join Date'];
+        tableData = users.map(user => [
+          user._id?.substring(0, 8) + '...',
+          user.name || 'Unknown',
+          user.email || 'Unknown',
+          user.role || 'buyer',
+          user.verified ? 'Yes' : 'No',
+          user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'
+        ]);
+        break;
+      case 'payments':
+        headers = ['Order ID', 'Customer', 'Amount', 'Method', 'Status', 'Reference'];
+        tableData = orders.filter(o => o.paymentMethod).map(order => [
+          order._id?.substring(0, 8) + '...',
+          order.userID?.name || 'Unknown',
+          `₱${order.totalPrice?.toFixed(2) || '0.00'}`,
+          order.paymentMethod || 'Unknown',
+          order.orderStatus || 'pending',
+          order.referenceNumber || '-'
+        ]);
+        break;
+      default:
+        headers = ['Metric', 'Value'];
+        tableData = [
+          ['Total Orders', orders.length],
+          ['Total Products', products.length],
+          ['Total Users', users.length],
+          ['Total Revenue', `₱${orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0).toFixed(2)}`]
+        ];
+    }
+    
+    // Add table
+    autoTable(doc, {
+      head: [headers],
+      body: tableData,
+      startY: 60,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [34, 197, 94] }
+    });
+    
+    // Save PDF
+    doc.save(`${template.name.replace('ADMIN REPORT-', '').toLowerCase()}_report.pdf`);
+    
+    toast({
+      title: "PDF Generated",
+      description: `${template.name} report has been downloaded`,
+    });
   };
 
-  const orderStatusConfig = {
-    value: {
-      label: "Count", 
-      color: "#22c55e",
-    },
-  };
-
-  const categoryConfig = {
-    products: {
-      label: "Products",
-      color: "#22c55e",
-    },
+  const handleExport = () => {
+    if (exportType === 'pdf') {
+      // Generate comprehensive PDF report
+      const doc = new jsPDF();
+      
+      doc.setFontSize(20);
+      doc.text('AgriGrow Admin Report', 20, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 35);
+      
+      // Summary statistics
+      const summaryData = [
+        ['Metric', 'Value'],
+        ['Total Orders', orders.length],
+        ['Total Products', products.length],
+        ['Total Users', users.length],
+        ['Total Revenue', `₱${orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0).toFixed(2)}`],
+        ['Average Order Value', `₱${orders.length > 0 ? (orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0) / orders.length).toFixed(2) : '0.00'}`]
+      ];
+      
+      autoTable(doc, {
+        head: [summaryData[0]],
+        body: summaryData.slice(1),
+        startY: 50,
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [34, 197, 94] }
+      });
+      
+      doc.save('agrigrow_comprehensive_report.pdf');
+      
+      toast({
+        title: "Export Complete",
+        description: "Comprehensive report exported as PDF",
+      });
+    } else if (exportType === 'csv') {
+      // Generate CSV export
+      const csvData = reportTemplates.map(template => ({
+        'Template Name': template.name,
+        'C_COID': 1 - reportTemplates.indexOf(template),
+        'Count': template.count,
+        'Generated Date': new Date().toISOString()
+      }));
+      
+      const csvContent = [
+        Object.keys(csvData[0]).join(','),
+        ...csvData.map(row => Object.values(row).join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'agrigrow_reports.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export Complete",
+        description: "Reports data exported as CSV",
+      });
+    }
   };
   
   if (isLoading) {
     return (
       <div className="h-full overflow-y-auto p-6 custom-scrollbar">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="border-stone-200">
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-stone-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-stone-200 rounded w-1/2"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
         <Card className="border-stone-200">
           <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Reports</CardTitle>
+            <CardTitle className="text-lg font-semibold text-stone-900">Admin Report View Detail</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="text-center text-stone-500">Loading reports...</div>
@@ -177,7 +240,7 @@ export default function Reports() {
       <div className="h-full overflow-y-auto p-6 custom-scrollbar">
         <Card className="border-stone-200">
           <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Reports</CardTitle>
+            <CardTitle className="text-lg font-semibold text-stone-900">Admin Report View Detail</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="text-center text-red-500">Error loading reports data</div>
@@ -189,289 +252,116 @@ export default function Reports() {
 
   return (
     <div className="h-full overflow-y-auto p-6 custom-scrollbar">
-      {/* Summary Cards with Mini Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card className="border-stone-200">
+          <CardHeader className="border-b border-stone-200">
+          <CardTitle className="text-lg font-semibold text-stone-900">Admin Report View Detail</CardTitle>
+          </CardHeader>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-stone-600">Total Orders</p>
-                <p className="text-2xl font-bold text-stone-900">{totalOrders}</p>
+          {/* Controls Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {/* Sort Order */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Sort Order</Label>
+              <div className="flex space-x-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    value="asc"
+                    checked={sortOrder === 'asc'}
+                    onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                    className="text-green-600"
+                  />
+                  <span className="text-sm">Asc</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    value="desc"
+                    checked={sortOrder === 'desc'}
+                    onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                    className="text-green-600"
+                  />
+                  <span className="text-sm">Desc</span>
+                </label>
               </div>
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 text-sm">📦</span>
-              </div>
-            </div>
-            <MiniChart 
-              data={ordersMiniData} 
-              labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']} 
-              activeColor="#3b82f6" 
-            />
-          </CardContent>
-        </Card>
-        
-        <Card className="border-stone-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-stone-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-stone-900">₱{totalRevenue.toLocaleString()}</p>
-              </div>
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-sm">💰</span>
-              </div>
-            </div>
-            <MiniChart 
-              data={revenueMiniData} 
-              labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']} 
-              activeColor="#22c55e" 
-            />
-          </CardContent>
-        </Card>
-        
-        <Card className="border-stone-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-stone-600">Total Products</p>
-                <p className="text-2xl font-bold text-stone-900">{totalProducts}</p>
-              </div>
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 text-sm">🛍️</span>
-              </div>
-            </div>
-            <MiniChart 
-              data={productsMiniData} 
-              labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']} 
-              activeColor="#8b5cf6" 
-            />
-          </CardContent>
-        </Card>
-        
-        <Card className="border-stone-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-stone-600">Total Users</p>
-                <p className="text-2xl font-bold text-stone-900">{totalUsers}</p>
-              </div>
-              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 text-sm">👥</span>
-              </div>
-            </div>
-            <MiniChart 
-              data={usersMiniData} 
-              labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']} 
-              activeColor="#f59e0b" 
-            />
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Order Trends - Line Chart */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Order Trends</CardTitle>
-            <p className="text-sm text-stone-500">Daily orders and revenue</p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ChartContainer config={orderTrendConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={orderTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="day" 
-                    className="text-xs"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line
-                    type="monotone"
-                    dataKey="orders"
-                    stroke="#22c55e"
-                    strokeWidth={3}
-                    dot={{ fill: "#22c55e", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: "#22c55e", strokeWidth: 2, fill: "#fff" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2, fill: "#fff" }}
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Payment Methods - Pie Chart */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Payment Methods</CardTitle>
-            <p className="text-sm text-stone-500">Distribution by payment type</p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ChartContainer config={paymentMethodConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={paymentMethodChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {paymentMethodChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+            {/* Email Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">Email Address:</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter email..."
+                value={emailFilter}
+                onChange={(e) => setEmailFilter(e.target.value)}
+                className="text-sm"
+              />
       </div>
 
-      {/* Additional Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Order Status - Bar Chart */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Order Status Distribution</CardTitle>
-            <p className="text-sm text-stone-500">Orders by status</p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ChartContainer config={orderStatusConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={orderStatusChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="name" 
-                    className="text-xs"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="value"
-                    radius={[4, 4, 0, 0]}
-                    name="Orders"
-                  >
-                    {orderStatusChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                  <ChartLegend content={<ChartLegendContent />} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+            {/* Search Button */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-transparent">Search</Label>
+              <Button onClick={handleSearch} className="w-full bg-green-600 hover:bg-green-700">
+                Search →
+              </Button>
+            </div>
 
-        {/* Product Categories - Bar Chart */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Product Categories</CardTitle>
-            <p className="text-sm text-stone-500">Products per category</p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ChartContainer config={categoryConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="name" 
-                    className="text-xs"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="products"
-                    radius={[4, 4, 0, 0]}
-                    name="Products"
-                  >
-                    {categoryChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                  <ChartLegend content={<ChartLegendContent />} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Export Type */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Type:</Label>
+              <Select value={exportType} onValueChange={setExportType}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="excel">Excel</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Average Order Value */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Average Order Value</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-stone-900">₱{averageOrderValue.toLocaleString()}</p>
-              <p className="text-sm text-stone-600 mt-2">Per order</p>
+            {/* Export Button */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-transparent">Export</Label>
+              <Button onClick={handleExport} className="w-full bg-green-600 hover:bg-green-700">
+                Export →
+              </Button>
+            </div>
+          </div>
+
+          {/* Reports Table */}
+          <div className="overflow-x-auto border border-stone-200 rounded-md">
+            <table className="w-full">
+              <thead className="bg-stone-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Template Name</th>
+             
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-stone-200">
+                {reportTemplates.map((template, index) => (
+                  <tr key={template.id} className={index % 2 === 0 ? 'bg-white' : 'bg-stone-50'}>
+                    <td className="px-4 py-3 text-sm text-stone-900">{template.name}</td>
+                    
+                    <td className="px-4 py-3 text-sm">
+                      <Button
+                        variant="secondary"
+                        className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                        onClick={() => generatePDF(template)}
+                      >
+                        pdf
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
           </CardContent>
         </Card>
-
-        {/* Total Categories */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Total Categories</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-stone-900">{totalCategories}</p>
-              <p className="text-sm text-stone-600 mt-2">Active categories</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Conversion Rate */}
-        <Card className="border-stone-200">
-          <CardHeader className="border-b border-stone-200">
-            <CardTitle className="text-lg font-semibold text-stone-900">Conversion Rate</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-stone-900">
-                {totalUsers > 0 ? ((totalOrders / totalUsers) * 100).toFixed(1) : 0}%
-              </p>
-              <p className="text-sm text-stone-600 mt-2">Orders per user</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Smartphone, MessageCircle, Settings, Edit, Facebook, Twitter, Instagram, LogOut, Shield, Save, X } from "lucide-react";
+import { Smartphone, MessageCircle, Settings, Edit, Facebook, Twitter, Instagram, LogOut, Shield, Save, X, Search, Send, Circle } from "lucide-react";
 import { messagesData } from "@/lib/data";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, getJson } from "@/lib/api";
 import type { SettingsState } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Profile() {
   const { user, logout, fetchUserProfile } = useAuth();
@@ -38,6 +39,80 @@ export default function Profile() {
     phone: '',
     avatar: ''
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [messageText, setMessageText] = useState('');
+  const [sentMessages, setSentMessages] = useState<any[]>(() => {
+    // Load messages from localStorage on component mount
+    try {
+      const saved = localStorage.getItem('sentMessages');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+
+  // Fetch online users
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ["/users?page=1&limit=50"],
+    queryFn: () => getJson<any>("/users?page=1&limit=50")
+  });
+
+  // Handle nested data structure from API: {success: true, data: {data: [...]}}
+  const users: any[] = usersData?.success ? 
+    (Array.isArray(usersData.data) ? usersData.data : 
+     (Array.isArray(usersData.data?.data) ? usersData.data.data : [])) : [];
+  
+  // Debug: Log users to see what we're getting
+  console.log('All users from API:', users);
+  console.log('Current user:', user);
+  
+  // Filter users based on search query and exclude current user
+  const filteredUsers = users.filter((u: any) => {
+    const name = u.name || u.firstname || u.firstName || u.username || '';
+    const email = u.email || '';
+    const searchLower = searchQuery.toLowerCase();
+    const userId = u._id || u.id;
+    const currentUserId = user?.id;
+    const isNotCurrentUser = userId !== currentUserId;
+    const matchesSearch = name.toLowerCase().includes(searchLower) || email.toLowerCase().includes(searchLower);
+    
+    // Debug: Log filtering
+    console.log('User filter check:', {
+      name,
+      email,
+      searchLower,
+      isNotCurrentUser,
+      matchesSearch,
+      userId,
+      currentUserId,
+      userObject: u
+    });
+    
+    return isNotCurrentUser && matchesSearch;
+  });
+  
+  console.log('Filtered users:', filteredUsers);
+
+  // Determine online status based on recent activity
+  const getOnlineStatus = (user: any) => {
+    const userId = user._id || user.id;
+    
+    // Check if user has been active recently (within last 5 minutes)
+    const lastActive = user.lastActive || user.updatedAt || user.createdAt;
+    if (lastActive) {
+      const lastActiveTime = new Date(lastActive);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      return lastActiveTime > fiveMinutesAgo;
+    }
+    
+    // Fallback: consider users with recent creation dates as potentially active
+    const createdAt = new Date(user.createdAt);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    return createdAt > oneHourAgo;
+  };
 
   const handleSettingChange = async (key: keyof SettingsState) => {
     const newSettings = { ...settings, [key]: !settings[key] };
@@ -120,6 +195,115 @@ export default function Profile() {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!selectedUser || !messageText.trim()) {
+      toast({ title: 'Error', description: 'Please select a user and enter a message', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      // Create or get conversation between admin and selected user
+      // For admin messaging, we need to determine roles based on user types
+      const adminId = user?.id;
+      const targetUserId = selectedUser._id || selectedUser.id;
+      
+      // Determine who should be buyer and seller based on roles
+      let buyerId, sellerId;
+      if (user?.isAdmin) {
+        // Admin is always the "buyer" in the conversation structure
+        buyerId = adminId;
+        sellerId = targetUserId;
+      } else {
+        // For non-admin users, use the original logic
+        buyerId = adminId;
+        sellerId = targetUserId;
+      }
+
+      const conversationResponse = await fetch(apiUrl('/messages/conversation'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyerId: buyerId,
+          sellerId: sellerId
+        })
+      });
+
+      if (!conversationResponse.ok) {
+        throw new Error('Failed to create conversation');
+      }
+
+      const conversationData = await conversationResponse.json();
+      const conversationId = conversationData.data.id;
+
+      // Send the actual message
+      const messageResponse = await fetch(apiUrl(`/messages/${conversationId}/messages`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderId: user?.id,
+          text: messageText.trim()
+        })
+      });
+
+      if (!messageResponse.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const messageData = await messageResponse.json();
+      console.log('Message sent successfully:', messageData);
+      
+      // Add to sent messages history for UI
+      const newMessage = {
+        id: messageData.data.id,
+        recipientId: selectedUser._id || selectedUser.id,
+        recipientName: selectedUser.name || selectedUser.firstname || selectedUser.firstName || selectedUser.username,
+        recipientEmail: selectedUser.email,
+        message: messageText.trim(),
+        timestamp: new Date().toISOString(),
+        status: 'sent'
+      };
+      
+      const updatedMessages = [newMessage, ...sentMessages];
+      setSentMessages(updatedMessages);
+      
+      // Save to localStorage for UI persistence
+      localStorage.setItem('sentMessages', JSON.stringify(updatedMessages));
+      
+      toast({ 
+        title: 'Message Sent', 
+        description: `Message sent to ${selectedUser.name || selectedUser.firstName || selectedUser.username}` 
+      });
+      
+      setMessageText('');
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({ title: 'Error', description: 'Failed to send message. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  const handleStartChat = (user: any) => {
+    setSelectedUser(user);
+    setMessageText('');
+  };
+
+  const fetchConversations = async () => {
+    if (!user?.id) return;
+    
+    setIsLoadingConversations(true);
+    try {
+      const response = await fetch(apiUrl(`/messages/conversations?userId=${user.id}`));
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
   const fetchAdminData = async () => {
     // No admin stats endpoint available; skip to avoid console JSON parse errors
     return;
@@ -128,7 +312,8 @@ export default function Profile() {
   useEffect(() => {
     fetchUserProfile();
     if (user?.isAdmin) fetchAdminData();
-  }, [user?.isAdmin]);
+    if (user?.id) fetchConversations();
+  }, [user?.isAdmin, user?.id]);
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('userSettings');
@@ -181,51 +366,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Platform Settings */}
-          <Card className="border-black-200">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-stone-900">Platform Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h4 className="text-sm font-normal text-stone-900 mb-3">ACCOUNT</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-stone-700">Email me when someone follows me</span>
-                    <Switch checked={settings.emailOnFollow} onCheckedChange={() => handleSettingChange('emailOnFollow')} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-stone-700">Email me when someone answers on my post</span>
-                    <Switch checked={settings.emailOnReply} onCheckedChange={() => handleSettingChange('emailOnReply')} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-stone-700">Email me when someone mentions me</span>
-                    <Switch checked={settings.emailOnMention} onCheckedChange={() => handleSettingChange('emailOnMention')} />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-normal text-stone-900 mb-3">APPLICATION</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-stone-700">New launches and projects</span>
-                    <Switch checked={settings.newLaunches} onCheckedChange={() => handleSettingChange('newLaunches')} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-stone-700">Monthly product updates</span>
-                    <Switch checked={settings.monthlyUpdates} onCheckedChange={() => handleSettingChange('monthlyUpdates')} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-stone-700">Subscribe to newsletter</span>
-                    <Switch checked={settings.newsletter} onCheckedChange={() => handleSettingChange('newsletter')} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
           {/* Profile Information */}
           <Card className="border-black-200">
             <CardHeader>
@@ -323,31 +464,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Messages */}
-          <Card className="border-black-200">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900">Messages</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {messagesData.map((message) => (
-                  <div key={message.id} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={message.avatar} alt={message.sender} />
-                        <AvatarFallback>{message.sender.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div className="ml-3">
-                        <p className="text-sm font-normal text-gray-900">{message.sender}</p>
-                        <p className="text-xs text-gray-500">{message.preview}</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="text-xs font-normal text-primary-600 border-primary-200 hover:bg-primary-50">REPLY</Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
       </div>
     </div>

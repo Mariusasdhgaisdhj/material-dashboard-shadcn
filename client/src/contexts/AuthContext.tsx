@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiUrl } from '@/lib/api';
+import { onesignalLogin } from '@/onesignal';
 
 interface User {
   id: number;
@@ -57,6 +58,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     setIsLoading(false);
   }, []);
+
+  // Ensure OneSignal external user id is set after hydration/login
+  useEffect(() => {
+    if (user?.id) {
+      try { onesignalLogin(String(user.id)); } catch {}
+    }
+  }, [user?.id]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

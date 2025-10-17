@@ -70,6 +70,7 @@ export default function Products() {
   });
   const [addImages, setAddImages] = useState<File[]>([]);
   const [addImagePreviews, setAddImagePreviews] = useState<string[]>([]);
+  const [imageViewer, setImageViewer] = useState<{ url: string; idx: number } | null>(null);
 
   useEffect(() => {
     if (open?.type === 'view') {
@@ -401,7 +402,7 @@ export default function Products() {
               </div>
               <div>
                 <Label>Description</Label>
-                <div className="mt-1 rounded-md border border-black-200 bg-white p-2 text-sm text-stone-800 min-h-[44px]">
+                <div className="mt-1 rounded-md border border-black-200 bg-white p-3 text-sm text-stone-800 min-h-[44px] whitespace-pre-wrap break-words leading-relaxed">
                   {selected?.description || "-"}
                 </div>
               </div>
@@ -446,18 +447,24 @@ export default function Products() {
                   ).length === 0 && (
                     <div className="text-sm text-stone-500">No images</div>
                   )}
-                  {(
-                    (Array.isArray(selected?.images) && selected?.images?.length) ? selected.images :
-                    (rows.find((r) => r.id === open?.id)?.images || [])
-                  ).map((img: any, idx: number) => {
-                    const url = typeof img === 'string' ? img : (img?.url || img?.imageUrl || img?.image);
-                    if (!url) return null;
-                    return (
-                      <div key={idx} className="aspect-square overflow-hidden rounded-md border border-stone-200 bg-stone-50">
+                {(
+                  (Array.isArray(selected?.images) && selected?.images?.length) ? selected.images :
+                  (rows.find((r) => r.id === open?.id)?.images || [])
+                ).map((img: any, idx: number) => {
+                  const url = typeof img === 'string' ? img : (img?.url || img?.imageUrl || img?.image);
+                  if (!url) return null;
+                  return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setImageViewer({ url, idx })}
+                        className="aspect-square overflow-hidden rounded-md border border-stone-200 bg-stone-50 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-stone-400"
+                        aria-label={`View image ${idx + 1}`}
+                      >
                         <img src={url} alt={`Product image ${idx + 1}`} className="h-full w-full object-cover" />
-                      </div>
-                    );
-                  })}
+                      </button>
+                  );
+                })}
                 </div>
               </div>
               <div className="flex justify-end space-x-2">
@@ -475,6 +482,21 @@ export default function Products() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Full image viewer */}
+      <Dialog open={!!imageViewer} onOpenChange={(o) => !o && setImageViewer(null)}>
+        <DialogContent className="max-w-5xl w-[90vw] bg-white p-0">
+          <div className="relative w-full h-[80vh] bg-black">
+            {imageViewer?.url && (
+              <img
+                src={imageViewer.url}
+                alt="Full image"
+                className="w-full h-full object-contain"
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

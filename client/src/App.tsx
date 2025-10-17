@@ -10,8 +10,11 @@ import { Footer } from "@/components/layout/footer";
 import { ThemeConfigurator } from "@/components/theme-configurator";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Menu } from "lucide-react";
-import { useState } from "react";
+import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { initOneSignal } from "@/onesignal";
+import GlobalLoadingOverlay from "./components/GlobalLoadingOverlay";
+import SidebarToggle from "./components/SidebarToggle";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Tables from "@/pages/tables";
@@ -35,6 +38,7 @@ import NotFound from "@/pages/not-found";
 
 function Layout({ children, title, description }: { children: React.ReactNode; title?: string; description?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [themeConfigOpen, setThemeConfigOpen] = useState(false);
 
   return (
@@ -59,6 +63,7 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
       </div>
       
       <main className="flex-1 overflow-y-auto p-3 lg:p-6 relative z-10 flex flex-col">
+        <GlobalLoadingOverlay />
         {/* Mobile header with burger menu */}
         <div className="lg:hidden mb-4">
           <Button
@@ -70,6 +75,7 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
             <Menu className="h-6 w-6" />
           </Button>
         </div>
+        {/* Desktop sidebar collapse via title click; separate button removed */}
         
         <Card className="flex-1 border border-stone-200 bg-white relative z-20">
           {title && (
@@ -207,6 +213,9 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    try { initOneSignal(); } catch {}
+  }, []);
   return (
     <HashRouter>
       <QueryClientProvider client={queryClient}>

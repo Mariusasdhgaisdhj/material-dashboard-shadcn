@@ -36,6 +36,7 @@ export default function Categories() {
 
   // Dialog state for create/edit/delete
   const [open, setOpen] = useState<{ type: "addCat"|"editCat"|"delCat"|"addSub"|"editSub"|"delSub"; id?: string; parentId?: string }|null>(null);
+  const [imageViewer, setImageViewer] = useState<{ url: string; name?: string } | null>(null);
   const [form, setForm] = useState<{ name: string; file?: File | null; imageUrl?: string; categoryId?: string }>({ name: "" });
 
   useEffect(() => {
@@ -220,11 +221,18 @@ export default function Categories() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {category.image && category.image !== 'no_url' ? (
-                            <img 
-                              src={category.image} 
-                              alt={category.name}
-                              className="w-12 h-12 object-cover rounded-lg"
-                            />
+                            <button
+                              type="button"
+                              onClick={() => setImageViewer({ url: category.image, name: category.name })}
+                              className="w-12 h-12 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-stone-400 cursor-zoom-in"
+                              aria-label={`View image of ${category.name}`}
+                            >
+                              <img 
+                                src={category.image} 
+                                alt={category.name}
+                                className="w-12 h-12 object-cover"
+                              />
+                            </button>
                           ) : (
                             <div className="w-12 h-12 bg-stone-200 rounded-lg flex items-center justify-center">
                               <span className="text-stone-400 text-xs">No Image</span>
@@ -331,6 +339,21 @@ export default function Categories() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Full image viewer */}
+      <Dialog open={!!imageViewer} onOpenChange={(o) => !o && setImageViewer(null)}>
+        <DialogContent className="max-w-5xl w-[90vw] bg-white p-0">
+          <div className="relative w-full h-[80vh] bg-black">
+            {imageViewer?.url && (
+              <img
+                src={imageViewer.url}
+                alt={imageViewer?.name || 'Full image'}
+                className="w-full h-full object-contain"
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

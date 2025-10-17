@@ -18,9 +18,34 @@ interface StatsGridProps {
   totalRevenue?: number;
   recentOrders?: any[];
   products?: any;
+  selectedYear?: string;
 }
 
-export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, totalRevenue = 0, recentOrders = [], products }: StatsGridProps) {
+export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, totalRevenue = 0, recentOrders = [], products, selectedYear }: StatsGridProps) {
+  // Generate real weekly data for mini charts
+  const generateWeeklyData = (data: any[], dateField: string, valueField?: string) => {
+    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weeklyData = daysOfWeek.map(day => ({ day, count: 0 }));
+    
+    data.forEach((item: any) => {
+      const date = new Date(item[dateField] || item.createdAt);
+      const dayIndex = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+      if (dayIndex >= 0 && dayIndex < 7) {
+        weeklyData[dayIndex].count += valueField ? (item[valueField] || 0) : 1;
+      }
+    });
+    
+    return weeklyData.map(d => d.count);
+  };
+
+  // Get real data from products prop
+  const productsData = products?.success && Array.isArray(products.data) ? products.data : [];
+  
+  // Generate real weekly data
+  const ordersWeeklyData = generateWeeklyData(recentOrders, 'orderDate');
+  const productsWeeklyData = generateWeeklyData(productsData, 'createdAt');
+  const usersWeeklyData = generateWeeklyData(recentOrders, 'orderDate'); // Using orders as proxy for user activity
+  const revenueWeeklyData = generateWeeklyData(recentOrders, 'orderDate', 'totalPrice');
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {/* Total Orders */}
@@ -32,6 +57,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400">
               Real-time order count
+              {selectedYear && <span className="ml-1 text-blue-600">({selectedYear})</span>}
             </p>
           </div>
           
@@ -40,7 +66,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
               {ordersCount}
             </div>
             <MiniChart 
-              data={[2, 4, 1, 3, 5, 2, 4]} 
+              data={ordersWeeklyData} 
               labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
               activeColor="#3b82f6"
             />
@@ -62,6 +88,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400">
               Products in catalog
+              {selectedYear && <span className="ml-1 text-blue-600">({selectedYear})</span>}
             </p>
           </div>
           
@@ -70,7 +97,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
               {productsCount}
             </div>
             <MiniChart 
-              data={[1, 2, 0, 3, 1, 2, 1]} 
+              data={productsWeeklyData} 
               labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
               activeColor="#8b5cf6"
             />
@@ -92,6 +119,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400">
               Registered businesses
+              {selectedYear && <span className="ml-1 text-blue-600">({selectedYear})</span>}
             </p>
           </div>
           
@@ -100,7 +128,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
               {usersCount}
             </div>
             <MiniChart 
-              data={[0, 1, 2, 1, 0, 1, 1]} 
+              data={usersWeeklyData} 
               labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
               activeColor="#f59e0b"
             />
@@ -122,6 +150,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400">
               From all orders
+              {selectedYear && <span className="ml-1 text-blue-600">({selectedYear})</span>}
             </p>
           </div>
           
@@ -130,7 +159,7 @@ export function StatsGrid({ ordersCount = 0, productsCount = 0, usersCount = 0, 
               ₱{totalRevenue.toLocaleString()}
             </div>
             <MiniChart 
-              data={[1200, 1800, 900, 1500, 2100, 1300, 1900]} 
+              data={revenueWeeklyData} 
               labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
               activeColor="#22c55e"
             />

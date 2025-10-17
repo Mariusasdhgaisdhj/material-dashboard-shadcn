@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { MiniChart } from "@/components/dashboard/mini-chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { 
   AreaChart, 
@@ -38,9 +39,12 @@ import {
   Phone,
   Mail
 } from "lucide-react";
+import { useState } from "react";
 import peopleBackground from "/images/material-persons.jpg";
 
 export default function Dashboard() {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  
   const { data: products, isLoading: productsLoading } = useQuery({ 
     queryKey: ["/products?page=1&limit=50"], 
     queryFn: () => getJson<any>("/products?page=1&limit=50") 
@@ -60,26 +64,68 @@ export default function Dashboard() {
   const usersArr: any[] = normalize(users);
   const ordersArr: any[] = normalize(orders);
 
-  const productsCount = productsArr.length;
-  const ordersCount = ordersArr.length;
-  // Count business owners (sellers)
-  const sellersCount = usersArr.filter((u: any) => u.role === 'seller' || !!u.business_name).length;
+  // Filter data by selected year
+  const filterByYear = (data: any[], dateField: string = 'createdAt') => {
+    return data.filter((item: any) => {
+      const date = new Date(item[dateField] || item.orderDate || item.created_at);
+      return date.getFullYear() === parseInt(selectedYear);
+    });
+  };
+
+  const filteredOrders = filterByYear(ordersArr, 'orderDate');
+  const filteredUsers = filterByYear(usersArr, 'createdAt');
+  const filteredProducts = filterByYear(productsArr, 'createdAt');
+
+  const productsCount = filteredProducts.length;
+  const ordersCount = filteredOrders.length;
+  // Count business owners (sellers) for the selected year
+  const sellersCount = filteredUsers.filter((u: any) => u.role === 'seller' || !!u.business_name).length;
   
   const isLoading = productsLoading || usersLoading || ordersLoading;
   
-  // Calculate total revenue from real data
+  // Calculate total revenue from filtered orders
   const totalRevenue = orders?.success && Array.isArray(orders.data) ? 
-    orders.data.reduce((sum: any, order: any) => sum + (order.totalPrice || 0), 0) : 0;
+    filteredOrders.reduce((sum: any, order: any) => sum + (order.totalPrice || 0), 0) : 0;
+
+  // Generate year options (current year and previous 4 years)
+  const yearOptions = Array.from({ length: 5 }, (_, i) => {
+    const year = new Date().getFullYear() - i;
+    return year.toString();
+  });
 
   return (
     <div className="h-full overflow-y-auto p-6 custom-scrollbar">
+      {/* Year Filter */}
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-white">Dashboard</h1>
+          <p className="text-stone-600 dark:text-stone-400">Analytics and insights</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Calendar className="w-4 h-4 text-stone-500" />
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <StatsGrid 
         ordersCount={ordersCount}
         productsCount={productsCount}
         usersCount={sellersCount}
         totalRevenue={totalRevenue}
-        recentOrders={ordersArr.slice(0, 5)}
+        recentOrders={filteredOrders.slice(0, 5)}
         products={products}
+        selectedYear={selectedYear}
       />
       <ProjectsTable 
         users={users}
@@ -87,9 +133,10 @@ export default function Dashboard() {
         orders={orders}
       />
       <ChartsShowcase 
-        orders={orders}
-        products={products}
-        users={users}
+        orders={{ ...orders, data: filteredOrders }}
+        products={{ ...products, data: filteredProducts }}
+        users={{ ...users, data: filteredUsers }}
+        selectedYear={selectedYear}
       />
     </div>
   );

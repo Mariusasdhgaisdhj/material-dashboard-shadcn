@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import Loader from "@/components/Loader";
 
 // Memoized input component to prevent unnecessary re-renders
 const FormInput = memo(({ 
@@ -145,7 +146,12 @@ export default function SignIn() {
   }, [email, password, validateForm, login, navigate]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70">
+          <Loader />
+        </div>
+      )}
       <div className="max-w-md w-full">
         <Card className="shadow-lg border border-black-200">
           <CardHeader className="text-center space-y-1">

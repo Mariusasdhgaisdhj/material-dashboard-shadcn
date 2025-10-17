@@ -15,6 +15,8 @@ import {
   Boxes
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 const navItems = [
   {
@@ -52,11 +54,7 @@ const navItems = [
     href: "/payments",
     icon: CreditCard,
   },
-  {
-    title: "Messages",
-    href: "/messages",
-    icon: Bell,
-  },
+
   {
     title: "Forum",
     href: "/forum",
@@ -67,18 +65,21 @@ const navItems = [
     href: "/reports",
     icon: BarChart3,
   },
+  {
+    title: "Messages",
+    href: "/messages",
+    icon: MessageCircle,
+  },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
 
   return (
-    <aside className="w-60 bg-white lg:bg-transparent flex flex-col relative z-10 h-full border-r border-stone-200 lg:border-0">
+    <aside className="w-full bg-white lg:bg-transparent flex flex-col relative z-10 h-full border-r border-stone-200 lg:border-0">
       {/* Brand Header */}
       <div className="p-6 pb-0 relative z-10 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-stone-900">
-          AgriGrow Admin
-        </h1>
+        <h1 className="text-lg font-semibold text-stone-900 select-none">AgriGrow Admin</h1>
         {/* Close button for mobile */}
         {onClose && (
           <Button
@@ -102,14 +103,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             <NavLink key={item.href} to={item.href}>
               <div
                 className={cn(
-                  "flex items-center text-sm font-normal rounded-lg cursor-pointer",
+                  "flex items-center text-sm font-normal rounded-lg cursor-pointer transition-colors duration-200",
+                  "px-3 py-2",
                   isActive
-                    ? "px-3 py-2 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border border-stone-900 text-stone-50 hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none duration-300 ease-in align-middle select-none font-sans text-center antialiased"
-                    : "px-3 py-2 text-stone-700 hover:bg-stone-100 transition-colors duration-200 border border-transparent"
+                    ? "bg-stone-800 border border-stone-900 shadow-sm hover:shadow-md"
+                    : "hover:bg-stone-100 border border-transparent",
+                  !isActive && "text-stone-700",
+                  isActive && "text-white"
                 )}
               >
-                <Icon className="mr-3 w-4 h-4" />
-                {item.title}
+                <Icon size={20} strokeWidth={2.25} className="mr-3" />
+                <span className="truncate">{item.title}</span>
               </div>
             </NavLink>
           );
