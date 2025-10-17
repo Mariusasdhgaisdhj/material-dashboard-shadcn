@@ -45,6 +45,7 @@ export default function Products() {
     id: p.id || p._id, // backend sometimes uses _id
     name: p.name,
     price: p.price ?? p.totalPrice ?? 0,
+    isFeatured: Boolean(p.is_featured || p.isFeatured),
     sellerName: p.users?.name || p.seller?.name || p.sellerId?.name || "-",
     images: Array.isArray(p.images)
       ? p.images.map((img: any) => img.url || img.imageUrl || img.image)
@@ -203,6 +204,7 @@ export default function Products() {
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Price</th>
                   <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Seller</th>
+                  <th className="px-6 py-3 text-left text-xs font-normal text-stone-500 uppercase tracking-wider">Featured</th>
                   <th className="px-6 py-3"></th>
                 </tr>
               </thead>
@@ -212,6 +214,28 @@ export default function Products() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{p.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">₱{Number(p.price || 0).toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{p.sellerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(apiUrl(`/products/${p.id}/featured`), {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ isFeatured: !p.isFeatured })
+                            });
+                            if (!res.ok) throw new Error('Toggle failed');
+                            toast({ title: 'Updated', description: `Product ${!p.isFeatured ? 'marked' : 'removed'} as featured` });
+                            await refetch();
+                          } catch (e: any) {
+                            toast({ title: 'Error', description: e?.message || 'Update failed', variant: 'destructive' });
+                          }
+                        }}
+                        className={`px-2 py-1 rounded-md border ${p.isFeatured ? 'bg-green-100 text-green-700 border-green-300' : 'bg-stone-100 text-stone-700 border-stone-300'}`}
+                        aria-label="Toggle Featured"
+                      >
+                        {p.isFeatured ? 'Yes' : 'No'}
+                      </button>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
                       <Button size="sm" variant="outline" onClick={() => setOpen({ type: 'view', id: p.id })}>View</Button>
                       <Button size="sm" variant="destructive" onClick={() => setOpen({ type: 'delete', id: p.id })}>Delete</Button>
