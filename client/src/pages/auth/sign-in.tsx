@@ -1,4 +1,5 @@
 import { useState, useCallback, memo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,20 @@ const FormInput = memo(({
   showPasswordToggle?: boolean;
   onTogglePassword?: () => void;
 }) => (
-  <div className="space-y-2">
+  <motion.div 
+    className="space-y-2"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3, delay: 0.1 }}
+  >
     <Label htmlFor={id} className="text-sm font-medium text-gray-700">
       {label}
     </Label>
-    <div className="relative">
+    <motion.div 
+      className="relative"
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 400 }}
+    >
       <Input
         id={id}
         name={id}
@@ -46,23 +56,29 @@ const FormInput = memo(({
         placeholder={placeholder}
         autoComplete={type === "password" ? "current-password" : "email"}
       />
-      {showPasswordToggle && (
-        <button
-          type="button"
-          onClick={onTogglePassword}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-          aria-label={type === 'password' ? 'Show password' : 'Hide password'}
-        >
-          {type === 'password' ? (
-            <Eye className="h-4 w-4" />
-          ) : (
-            <EyeOff className="h-4 w-4" />
-          )}
-        </button>
-      )}
-    </div>
+      <AnimatePresence>
+        {showPasswordToggle && (
+          <motion.button
+            type="button"
+            onClick={onTogglePassword}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            aria-label={type === 'password' ? 'Show password' : 'Hide password'}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+          >
+            {type === 'password' ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
     {error && <p className="text-xs text-red-600">{error}</p>}
-  </div>
+  </motion.div>
 ));
 
 FormInput.displayName = "FormInput";
@@ -146,56 +162,110 @@ export default function SignIn() {
   }, [email, password, validateForm, login, navigate]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-emerald-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Animated background elements */}
+      <motion.div 
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2 }}
+      >
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(120,119,198,0.3),transparent_50%)]" />
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,rgba(255,119,198,0.3),transparent_50%)]" />
+      </motion.div>
+      
       {isLoading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70">
-          <Loader />
-        </div>
+        <motion.div 
+          className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
+            <Loader />
+          </motion.div>
+        </motion.div>
       )}
-      <div className="max-w-md w-full">
-        <Card className="shadow-lg border border-black-200">
-          <CardHeader className="text-center space-y-1">
-            <CardTitle className="text-3xl font-bold tracking-tight">Log In</CardTitle>
-            <p className="text-sm text-gray-600">Hello Admin! Please log in to continue</p>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <FormInput
-                id="email"
-                label="Email"
-                type="email"
-                value={email}
-                
-                placeholder="email"
-               
-                onChange={handleEmailChange}
-                error={errors.email}
-              />
-              
-              <FormInput
-                id="password"
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                placeholder="••••••••"
-                onChange={handlePasswordChange}
-                error={errors.password}
-                showPasswordToggle={true}
-                onTogglePassword={togglePasswordVisibility}
-              />
+      
+      <motion.div 
+        className="max-w-md w-full relative z-10"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <motion.div
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="text-center space-y-1 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+              <CardTitle className="text-3xl font-bold tracking-tight text-gray-900">Log In</CardTitle>
+              <p className="text-sm text-gray-600">Hello Admin! Please log in to continue</p>
+            </CardHeader>
+            
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key="email"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <FormInput
+                      id="email"
+                      label="Email"
+                      type="email"
+                      value={email}
+                      placeholder="email"
+                      onChange={handleEmailChange}
+                      error={errors.email}
+                    />
+                  </motion.div>
+                  
+                  <motion.div
+                    key="password"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                  >
+                    <FormInput
+                      id="password"
+                      label="Password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      placeholder="••••••••"
+                      onChange={handlePasswordChange}
+                      error={errors.password}
+                      showPasswordToggle={true}
+                      onTogglePassword={togglePasswordVisibility}
+                    />
+                  </motion.div>
+                </AnimatePresence>
 
-              <Button
-                type="submit"
-                className="w-full mt-6"
-                disabled={isLoading}
-              >
-                {isLoading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <Button
+                    type="submit"
+                    className="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </motion.div>
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

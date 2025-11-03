@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 import { 
   AreaChart, 
   Area, 
@@ -15,6 +17,16 @@ import {
   CartesianGrid, 
   ResponsiveContainer 
 } from "recharts";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  ShoppingCart, 
+  CreditCard, 
+  Package, 
+  BarChart3,
+  Activity
+} from "lucide-react";
 
 // Sample data for different chart types
 const areaChartData = [
@@ -52,48 +64,48 @@ const barChartData = [
 const areaChartConfig = {
   sales: {
     label: "Sales",
-    color: "#22c55e",
+    color: "#10b981",
   },
   expenses: {
     label: "Expenses", 
-    color: "#0c0a09",
+    color: "#ef4444",
   },
 };
 
 const lineChartConfig = {
   users: {
     label: "Users",
-    color: "#22c55e",
+    color: "#3b82f6",
   },
   sessions: {
     label: "Sessions",
-    color: "#0c0a09",
+    color: "#8b5cf6",
   },
 };
 
 const barChartConfig = {
   revenue: {
     label: "Revenue",
-    color: "#22c55e",
+    color: "#10b981",
   },
   profit: {
     label: "Profit",
-    color: "#0c0a09",
+    color: "#f59e0b",
   },
 };
 
 const pieChartConfig = {
   desktop: {
     label: "Desktop",
-    color: "#22c55e",
+    color: "#3b82f6",
   },
   mobile: {
     label: "Mobile", 
-    color: "#0c0a09",
+    color: "#10b981",
   },
   tablet: {
     label: "Tablet",
-    color: "#22c55e",
+    color: "#8b5cf6",
   },
 };
 
@@ -144,12 +156,18 @@ export function ChartsShowcase({ orders, products, users, selectedYear }: Charts
     return acc;
   }, {});
 
-  const paymentMethodData = Object.entries(paymentMethodCounts).map(([method, count]) => ({
+const paymentMethodData = Object.entries(paymentMethodCounts)
+  .filter(([_, count]) => (count as number) > 0) // Optional: Skip zero counts to avoid invisible slices
+  .map(([method, count]) => ({
     name: method,
-    value: count,
-    fill: method.toLowerCase().includes('gcash') ? '#22c55e' : 
-          method.toLowerCase().includes('paypal') ? '#3b82f6' : 
-          method.toLowerCase().includes('card') ? '#8b5cf6' : '#6b7280'
+    value: count as number,
+    fill: method.toLowerCase().includes('gcash') 
+      ? '#10b981' 
+      : method.toLowerCase().includes('cod') // Fixed: lowercase 'cod' to match after toLowerCase()
+      ? '#3b82f6' 
+      : method.toLowerCase().includes('card')
+      ? '#8b5cf6'
+      : '#6b7280',
   }));
 
   // Product categories data - real data from backend
@@ -222,190 +240,294 @@ export function ChartsShowcase({ orders, products, users, selectedYear }: Charts
   const orderStatusData = Object.entries(orderStatusCounts).map(([status, count]) => ({
     status,
     count,
-    fill: status === 'paid' ? '#22c55e' :
-          status === 'delivered' ? '#16a34a' :
+    fill: status === 'paid' ? '#10b981' :
+          status === 'delivered' ? '#059669' :
           status === 'shipped' ? '#3b82f6' :
           status === 'pending' ? '#f59e0b' :
           status === 'cancelled' ? '#ef4444' : '#6b7280'
   }));
 
   const orderTrendConfig = {
-    orders: { label: "Orders", color: "#22c55e" },
+    orders: { label: "Orders", color: "#10b981" },
     revenue: { label: "Revenue", color: "#3b82f6" },
   };
 
-  const paymentMethodConfig = {
-    value: { label: "Count", color: "#22c55e" },
-  };
+const paymentMethodConfig = Object.entries(paymentMethodCounts).reduce(
+  (acc: Record<string, { color: string }>, [method, count]: [string, unknown]) => {
+    let label = method;
+    let color = '#6b7280';
+    if (method.toLowerCase().includes('gcash')) {
+      color = '#10b981';
+      label = 'GCash';
+    } else if (method.toLowerCase().includes('cod')) {
+      color = '#3b82f6';
+      label = 'COD';
+    }
+    acc[label] = { color };
+    return acc;
+  },
+  {} // Initial value: empty object
+);
 
   const categoryConfig = {
-    products: { label: "Products", color: "#22c55e" },
+    products: { label: "Products", color: "#10b981" },
     revenue: { label: "Revenue", color: "#3b82f6" },
   };
 
   const orderStatusConfig = {
-    count: { label: "Count", color: "#22c55e" },
+    count: { label: "Count", color: "#10b981" },
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
       {/* Order Trends - Line Chart */}
-      <Card className="border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Order Trends</CardTitle>
-          <p className="text-sm text-gray-500">
-            Daily orders and revenue from real data
-            {selectedYear && <span className="ml-1 text-blue-600">({selectedYear})</span>}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={orderTrendConfig} className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={orderTrendArray} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="day" 
-                  className="text-xs"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  className="text-xs"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="orders"
-                  stroke="#22c55e"
-                  strokeWidth={3}
-                  dot={{ fill: "#22c55e", strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: "#22c55e", strokeWidth: 2, fill: "#fff" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2, fill: "#fff" }}
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white">
+                    Order Trends
+                  </CardTitle>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Daily orders and revenue
+                    
+                  </p>
+                </div>
+              </div>
+             
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ChartContainer config={orderTrendConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={orderTrendArray} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+                  <XAxis 
+                    dataKey="day" 
+                    className="text-xs text-slate-600 dark:text-slate-400"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    className="text-xs text-slate-600 dark:text-slate-400"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg"
+                    />} 
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="orders"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2, fill: "#fff" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2, fill: "#fff" }}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-      {/* Payment Methods - Pie Chart */}
-      <Card className="border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Payment Methods</CardTitle>
-          <p className="text-sm text-gray-500">Distribution by payment type</p>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={paymentMethodConfig} className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                <Pie
-                  data={paymentMethodData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {paymentMethodData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartLegend content={<ChartLegendContent />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
+     {/* Payment Methods - Pie Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white">
+                    Payment Methods
+                  </CardTitle>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Distribution by payment type
+                  </p>
+                </div>
+              </div>
+              
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ChartContainer config={paymentMethodConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg"
+                    />} 
+                  />
+                  <Pie
+                    data={paymentMethodData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {paymentMethodData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent nameKey="method" />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </motion.div>
       {/* Product Categories - Bar Chart */}
-      <Card className="border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Product Categories</CardTitle>
-          <p className="text-sm text-gray-500">
-            Products per category
-            {selectedYear && <span className="ml-1 text-blue-600">({selectedYear})</span>}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={categoryConfig} className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categoryData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="category" 
-                  className="text-xs"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  className="text-xs"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="products"
-                  fill="#22c55e"
-                  radius={[4, 4, 0, 0]}
-                  name="Products"
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg">
+                  <Package className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white">
+                    Product Categories
+                  </CardTitle>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Products per category
+                   
+                  </p>
+                </div>
+              </div>
+             
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ChartContainer config={categoryConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+                  <XAxis 
+                    dataKey="category" 
+                    className="text-xs text-slate-600 dark:text-slate-400"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    className="text-xs text-slate-600 dark:text-slate-400"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg"
+                    />} 
+                  />
+                  <Bar
+                    dataKey="products"
+                    fill="#10b981"
+                    radius={[4, 4, 0, 0]}
+                    name="Products"
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Order Status - Bar Chart */}
-      <Card className="border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Order Status Distribution</CardTitle>
-          <p className="text-sm text-gray-500">Orders by status</p>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={orderStatusConfig} className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={orderStatusData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="status" 
-                  className="text-xs"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  className="text-xs"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="count"
-                  radius={[4, 4, 0, 0]}
-                  name="Orders"
-                >
-                  {orderStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Bar>
-                <ChartLegend content={<ChartLegendContent />} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl shadow-lg">
+                  <Activity className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white">
+                    Order Status Distribution
+                  </CardTitle>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Orders by status
+                  </p>
+                </div>
+              </div>
+           
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ChartContainer config={orderStatusConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={orderStatusData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+                  <XAxis 
+                    dataKey="status" 
+                    className="text-xs text-slate-600 dark:text-slate-400"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    className="text-xs text-slate-600 dark:text-slate-400"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg"
+                    />} 
+                  />
+                  <Bar
+                    dataKey="count"
+                    radius={[4, 4, 0, 0]}
+                    name="Orders"
+                  >
+                    {orderStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                  <ChartLegend content={<ChartLegendContent />} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

@@ -1,61 +1,81 @@
-export interface StatsCard {
-  title: string;
-  description: string;
-  value?: string;
-  change?: string;
-  changeType?: 'increase' | 'decrease';
-  lastUpdate: string;
-  chartData: number[];
-  chartLabels: string[];
+// User and Authentication Types
+export interface User {
+  id: string | number;
+  name?: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  mobile?: string;
+  phone?: string;
+  avatar?: string;
+  profilepicture?: string;
+  role?: 'admin' | 'buyer' | 'seller';
+  title?: string;
+  bio?: string;
+  location?: string;
+  verified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastActive?: string;
+  business_name?: string;
+  latitude?: number;
+  longitude?: number;
+  addressinfo?: {
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    products?: string[];
+  };
+  shipping_fee?: number;
+  seller_request?: 'pending' | 'approved' | 'rejected';
+  paypal_email?: string;
+  external_auth_id?: string;
 }
 
-export interface ProjectMember {
-  id: string;
-  name: string;
-  avatar: string;
-  color: string;
+// API Response Types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
+  total?: number;
+  page?: number;
+  limit?: number;
 }
 
-export interface ProjectData {
-  id: string;
-  name: string;
-  company: string;
-  icon: string;
-  iconColor: string;
-  members: ProjectMember[];
-  budget: string;
-  completion: number;
-  status: 'working' | 'done' | 'cancelled';
-}
-
-export interface Author {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  role: string;
-  department: string;
-  status: 'online' | 'offline';
-  employed: string;
-}
-
-export interface NotificationData {
-  id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  title: string;
+// User List Response
+export interface UserListResponse {
+  success: boolean;
   message: string;
-  time: string;
-  isRead: boolean;
+  data: User[];
+  total?: number;
+  page?: number;
+  limit?: number;
 }
 
-export interface Message {
-  id: string;
-  sender: string;
-  avatar: string;
-  preview: string;
-  time: string;
+// Activity Log Types
+export interface ActivityLogItem {
+  id?: string;
+  action: string;
+  timestamp: string | number | Date;
+  details?: string;
+  ip_address?: string;
+  user_agent?: string;
 }
 
+// IP Log Types
+export interface IPLog {
+  id?: string;
+  ip: string;
+  location?: string;
+  timestamp: string | number | Date;
+  user_agent?: string;
+  country?: string;
+  city?: string;
+}
+
+// Settings Types
 export interface SettingsState {
   emailOnFollow: boolean;
   emailOnReply: boolean;
@@ -66,4 +86,80 @@ export interface SettingsState {
   emailNotifications: boolean;
   pushNotifications: boolean;
   smsNotifications: boolean;
+}
+
+// Profile Form Types
+export interface ProfileFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  avatar: string;
+}
+
+// Admin Stats Types
+export interface AdminStats {
+  totalUsers: number;
+  activeSessions: number;
+  systemStatus: string;
+  newUsersToday?: number;
+  totalRevenue?: number;
+  activeSellers?: number;
+}
+
+// Search and Filter Types
+export interface UserSearchParams {
+  query?: string;
+  role?: string;
+  verified?: boolean;
+  page?: number;
+  limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+// Bulk Operations Types
+export interface BulkOperation {
+  userIds: string[];
+  action: 'role' | 'verify' | 'delete' | 'activate' | 'deactivate';
+  value?: string | boolean;
+}
+
+// Notification Types
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  isRead: boolean;
+  createdAt: string;
+  userId?: string;
+}
+
+// Error Types
+export interface ApiError {
+  message: string;
+  code?: string | number;
+  details?: any;
+}
+
+// Loading States
+export interface LoadingState {
+  profile: boolean;
+  users: boolean;
+  activity: boolean;
+  ipLogs: boolean;
+  adminStats: boolean;
+  saving: boolean;
+  uploading: boolean;
+}
+
+// Pagination Types
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }

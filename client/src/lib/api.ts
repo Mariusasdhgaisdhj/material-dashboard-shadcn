@@ -8,9 +8,56 @@ export function apiUrl(path: string): string {
   
   const base = API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
   const p = path.startsWith("/") ? path : `/${path}`;
-  const fullUrl = `${base}${p}`;
+  
+  // Remove /api prefix from path since backend routes are mounted directly
+  const cleanPath = p.startsWith("/api") ? p.substring(4) : p;
+  const fullUrl = `${base}${cleanPath}`;
   console.log(`[API] Making request to: ${fullUrl}`);
   return fullUrl;
+}
+
+export async function postJson<T>(url: string, data: any): Promise<T> {
+  const fullUrl = apiUrl(url);
+  const response = await fetch(fullUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function putJson<T>(url: string, data: any): Promise<T> {
+  const fullUrl = apiUrl(url);
+  const response = await fetch(fullUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) throw new Error(`PUT ${fullUrl} failed: ${response.statusText}`);
+  return response.json();
+}
+
+export async function deleteJson<T>(url: string): Promise<T> {
+  const fullUrl = apiUrl(url);
+  const response = await fetch(fullUrl, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error(`DELETE ${fullUrl} failed: ${response.statusText}`);
+  return response.json();
 }
 
 export async function getJson<T>(path: string): Promise<T> {

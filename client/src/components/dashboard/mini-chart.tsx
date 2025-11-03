@@ -28,7 +28,7 @@ export function MiniChart({ data, labels, activeColor = "#3b82f6" }: MiniChartPr
   return (
     <div className="mt-4">
       <div className="h-24 mb-2">
-        <ChartContainer config={chartConfig} className="h-full w-full">
+        <ChartContainer config={chartConfig} className="h-full w-full border-b border-black-200">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <XAxis 

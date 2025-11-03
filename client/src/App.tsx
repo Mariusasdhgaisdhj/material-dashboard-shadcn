@@ -9,29 +9,44 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { ThemeConfigurator } from "@/components/theme-configurator";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NavigationProvider } from "@/contexts/NavigationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { initOneSignal } from "@/onesignal";
-import GlobalLoadingOverlay from "./components/GlobalLoadingOverlay";
 import SidebarToggle from "./components/SidebarToggle";
-import Dashboard from "@/pages/dashboard";
-import Profile from "@/pages/profile";
-import Tables from "@/pages/tables";
-import Orders from "@/pages/orders";
-import Categories from "@/pages/categories";
-import Payments from "@/pages/payments";
-import Messages from "@/pages/messages";
-import Forum from "@/pages/forum";
-import Reports from "@/pages/reports";
-import Notifications from "@/pages/notifications";
-import Subscriptions from "@/pages/subscriptions";
-import Documentation from "@/pages/documentation";
-import SignIn from "@/pages/auth/sign-in";
-import SignUp from "@/pages/auth/sign-up";
-import Users from "@/pages/users";
-import Products from "@/pages/products";
-import NotFound from "@/pages/not-found";
+
+// Lazy load pages to reduce initial bundle size
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const Profile = lazy(() => import("@/pages/profile"));
+const Tables = lazy(() => import("@/pages/tables"));
+const Orders = lazy(() => import("@/pages/orders"));
+const Categories = lazy(() => import("@/pages/categories"));
+const Payments = lazy(() => import("@/pages/payments"));
+const Messages = lazy(() => import("@/pages/messages"));
+const Forum = lazy(() => import("@/pages/forum"));
+const Reports = lazy(() => import("@/pages/reports"));
+const Notifications = lazy(() => import("@/pages/notifications"));
+const Subscriptions = lazy(() => import("@/pages/subscriptions"));
+const Documentation = lazy(() => import("@/pages/documentation"));
+const SignIn = lazy(() => import("@/pages/auth/sign-in"));
+const SignUp = lazy(() => import("@/pages/auth/sign-up"));
+const Users = lazy(() => import("@/pages/users"));
+const Products = lazy(() => import("@/pages/products"));
+const DynamicNavigationDemo = lazy(() => import("@/pages/dynamic-navigation-demo"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const PayoutSuccess = lazy(() => import("@/pages/payouts/success"));
+const PayoutFailed = lazy(() => import("@/pages/payouts/failed"));
+
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      <p className="text-sm text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 
 
@@ -63,7 +78,6 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
       </div>
       
       <main className="flex-1 overflow-y-auto p-3 lg:p-6 relative z-10 flex flex-col">
-        <GlobalLoadingOverlay />
         {/* Mobile header with burger menu */}
         <div className="lg:hidden mb-4">
           <Button
@@ -105,7 +119,8 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
 
 function Router() {
   return (
-    <Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
       <Route path="/" element={
         <ProtectedRoute>
           <Layout>
@@ -115,21 +130,21 @@ function Router() {
       } />
       <Route path="/profile" element={
         <ProtectedRoute>
-          <Layout title="Profile" description="Manage your account settings and personal information">
+          <Layout >
             <Profile />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/users" element={
         <ProtectedRoute>
-          <Layout title="Users" description="Manage users">
+          <Layout>
             <Users />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/products" element={
         <ProtectedRoute>
-          <Layout title="Products" description="Manage products">
+          <Layout >
             <Products />
           </Layout>
         </ProtectedRoute>
@@ -137,49 +152,49 @@ function Router() {
 
       <Route path="/tables" element={
         <ProtectedRoute>
-          <Layout title="Tables" description="Browse and manage data across different views">
+          <Layout>
             <Tables />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/orders" element={
         <ProtectedRoute>
-          <Layout title="Orders" description="View recent orders">
+          <Layout>
             <Orders />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/categories" element={
         <ProtectedRoute>
-          <Layout title="Categories" description="Manage product categories">
+          <Layout>
             <Categories />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/payments" element={
         <ProtectedRoute>
-          <Layout title="Payments" description="Payment records">
+          <Layout >
             <Payments />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/messages" element={
         <ProtectedRoute>
-          <Layout title="Messages" description="User messages">
+          <Layout>
             <Messages />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/forum" element={
         <ProtectedRoute>
-          <Layout title="Forum" description="Community posts">
+          <Layout >
             <Forum />
           </Layout>
         </ProtectedRoute>
       } />
       <Route path="/reports" element={
         <ProtectedRoute>
-          <Layout title="Reports" description="Analytics and insights">
+          <Layout>
             <Reports />
           </Layout>
         </ProtectedRoute>
@@ -205,10 +220,14 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       } />
+ 
       <Route path="/auth/sign-in" element={<SignIn />} />
       <Route path="/auth/sign-up" element={<SignUp />} />
+      <Route path="/payouts/success" element={<PayoutSuccess />} />
+      <Route path="/payouts/failed" element={<PayoutFailed />} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -220,10 +239,12 @@ function App() {
     <HashRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <NavigationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </NavigationProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HashRouter>
