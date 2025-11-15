@@ -791,13 +791,7 @@ export default function Products() {
                         >
                           {product.archived ? <ArchiveRestore className="w-4 h-4 mr-1" /> : <Archive className="w-4 h-4 mr-1" />} {product.archived ? 'Unarchive' : 'Archive'}
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive" 
-                          onClick={() => setOpen({ type: 'delete', id: product._id })}
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" /> Delete
-                        </Button>
+                     
                       </td>
                     </tr>
                   ))}

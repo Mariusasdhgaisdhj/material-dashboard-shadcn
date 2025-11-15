@@ -1104,9 +1104,7 @@ const UsersDataLoader: React.FC = () => {
                                 Unsuspend
                               </Button>
                             )}
-                            <Button size="sm" variant="destructive" onClick={() => startDeleteUser(user)}>
-                            Delete
-                          </Button>
+                           
                             {user.seller_request && (
                               <Button size="sm" variant="outline" onClick={() => startViewSellerRequest(user)}>
                                 View Request
@@ -1436,15 +1434,7 @@ const UsersDataLoader: React.FC = () => {
             </div>
           )}
 
-          {open?.type === 'delete' && (
-            <div className="space-y-4">
-              <p className="text-sm">Are you sure you want to delete this user?</p>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setOpen(null)}>Cancel</Button>
-                <Button variant="destructive" onClick={submit}>Delete</Button>
-              </div>
-            </div>
-          )}
+        
 
           {open?.type === 'promote' && (
             <div className="space-y-4">
